@@ -36,3 +36,13 @@ $ nativescript-code-push login https://nativescript-codepush-server.herokuapp.co
 
 - account: `admin`
 - password: `123456`
+
+## Making changes to this server
+Go ahead and roll your own, but if you want to change the production code, push to `master`
+and Heroku will deploy a new version automatically.
+
+To check the production logs (requires the right credentials 😉):
+
+```shell
+heroku logs --app nativescript-codepush-server --tail
+```
