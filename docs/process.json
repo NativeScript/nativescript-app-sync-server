@@ -1,0 +1,16 @@
+{
+    "apps" : [
+        {
+            "name"      : "code-push-server",
+            "max_memory_restart" : "300M",
+            "script"    : "/path/to/code-push-server/bin/www",
+            "instances"  : "max", //开启实例数量，max为cpu核数
+            "exec_mode"  : "cluster", //集群模式，最大提升网站并发
+            "env" : {
+                "NODE_ENV" : "production",
+                "PORT" : 3000,
+                "CONFIG_FILE" : "/path/to/production/config.js"
+            }
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+extends layout
+block css
+  link(rel='stylesheet', href='/stylesheets/index.css')
+
+block content
+  .site-notice NativeScript CodePush Server
+  h1(style="text-align: center;")= title
+  p(style="text-align: center;") Welcome to #{title}
+  .site-notice
+    a.btn.btn-primary(href="/auth/login" type="button") Log in
+    a.btn.btn-primary.col-md-offset-1(href="/auth/password" type="button") Change password

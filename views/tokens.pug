@@ -1,0 +1,79 @@
+extends layout
+block css
+  link(rel='stylesheet', href='/stylesheets/tokens.css')
+
+block content
+  h1(style="text-align: center;")= title
+  .site-notice
+    a#submitBtn.btn.btn-lg.btn-primary Get token
+  .form-group
+    #tipsSuccess(style="display:none")
+      h2(style="text-align: center;") Authentication succeeded.
+      h2(style="text-align: center;") Please copy and paste this access key to the command window:
+  .form-group
+    .col-sm-offset-3.col-sm-6
+      input#key.form-control(style="display:none" readonly)
+  br
+  .form-group
+    #tipsClose(style="display:none")
+      h2(style="text-align: center;") After doing so, please close this browser.
+
+block js
+  script().
+    var submit = false;
+    function parseQuery(query) {
+      query = query.substring(1);
+      var vars = query.split('&');
+      var rs = {};
+      for (var i = 0; i < vars.length; i++) {
+        var pair = vars[i].split('=');
+        rs[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+      }
+      return rs;
+    }
+    $('#submitBtn').on('click', function () {
+      if (submit) {
+        return ;
+      }
+      submit = true;
+      var query = parseQuery(location.search);
+      var createdBy = query.hostname;
+      var time = (new Date()).getTime();
+      if (createdBy == null || createdBy == undefined || createdBy=="") {
+        createdBy = 'Login-' + time;
+      }
+      var postParams = {
+        createdBy: createdBy,
+        friendlyName: "Login-" + time,
+        ttl: 60*60*24*30*1000,
+        description: "Login-" + time,
+        isSession: true
+      };
+      var access_token = sessionStorage.getItem('auth');
+      $.ajax({
+        type: 'post',
+        data: postParams,
+        headers: {
+          Authorization : 'Bearer '+access_token
+        },
+        url: '/accessKeys',
+        dataType: 'json',
+        success: function (data) {
+          submit = false;
+          $('#tipsSuccess').show();
+          $('#key').val(data.accessKey.name);
+          $('#key').show();
+          $('#tipsClose').show();
+        },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+          submit = false;
+          if (errorThrown == 'Unauthorized') {
+            alert('Try again');
+            location.href = '/auth/login'
+          }else {
+            alert(errorThrown);
+          }
+        }
+      });
+    });
+

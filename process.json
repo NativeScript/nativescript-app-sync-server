@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "code-push-server",
+      "max_memory_restart": "300M",
+      "script": "./bin/www",
+      "instances": "1",
+      "exec_mode": "fork",
+      "env": {
+        "NODE_ENV": "production",
+        "CONFIG_FILE": "./config/config.js"
+      }
+    }
+  ]
+}
