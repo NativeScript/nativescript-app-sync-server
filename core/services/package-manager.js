@@ -627,7 +627,7 @@ proto.rollbackPackage = function (deploymentVersionId, targetLabel, rollbackUid)
           }
         }
       }
-      throw new AppError.AppError("没有可供回滚的版本");
+      throw new AppError.AppError("No previous CodePush'ed version found for this app version to roll back to.");
     })
     .then((rollbackPackage) => {
       var params = {
