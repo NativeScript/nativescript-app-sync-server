@@ -96,8 +96,7 @@ config.development = {
   // Config for redis (register module, tryLoginTimes module)
   redis: {
     default: {
-      host: "redis://h:p5eeabc7c3625154809bf130d62e0b873c3881cff868fa3814f9ea4773d774143@ec2-99-80-37-150.eu-west-1.compute.amazonaws.com",
-      port: 9619,
+      url: process.env.REDIS_URL,
       retry_strategy: function (options) {
         if (options.error.code === 'ECONNREFUSED') {
           // End reconnecting on a specific error and flush all commands with a individual error
