@@ -166,12 +166,12 @@ const EXPIRED_SPEED = 10;
 
 proto.sendRegisterCode = function (email) {
   if (_.isEmpty(email)) {
-    return Promise.reject(new AppError.AppError("请您输入邮箱地址"));
+    return Promise.reject(new AppError.AppError("Please enter your email address"));
   }
   return models.Users.findOne({where: {email: email}})
   .then((u) => {
     if (u) {
-      throw new AppError.AppError(`"${email}" 已经注册过，请更换邮箱注册`);
+      throw new AppError.AppError(`"${email}" already registered`);
     }
   })
   .then(() => {
@@ -187,6 +187,7 @@ proto.sendRegisterCode = function (email) {
   .then((token) => {
     //将token发送到用户邮箱
     var emailManager = new EmailManager();
+    console.log("Calling email manager with token: " + token);
     return emailManager.sendRegisterCode(email, token);
   })
 };

@@ -85,12 +85,12 @@ config.development = {
   },
   // Config for smtp email，register module need validate user email project source https://github.com/nodemailer/nodemailer
   smtpConfig:{
-    host: "smtp.aliyun.com",
-    port: 465,
+    host: process.env.MAILGUN_SMTP_SERVER,
+    port: process.env.MAILGUN_SMTP_PORT,
     secure: true,
     auth: {
-      user: "",
-      pass: ""
+      user: process.env.MAILGUN_SMTP_LOGIN,
+      pass: process.env.MAILGUN_SMTP_PASSWORD
     }
   },
   // Config for redis (register module, tryLoginTimes module)
