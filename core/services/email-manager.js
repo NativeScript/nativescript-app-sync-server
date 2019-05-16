@@ -7,8 +7,6 @@ var security = require('../utils/security');
 var moment = require('moment');
 var nodemailer = require('nodemailer');
 var config = require('../config');
-var log4js = require('log4js');
-var log = log4js.getLogger("cps:account");
 
 var proto = module.exports = function (){
   function EmailManager() {
@@ -19,13 +17,11 @@ var proto = module.exports = function (){
 };
 
 proto.sendMail = function (options) {
-  log("SendMail called with options:", options);
   return new Promise((resolve, reject) => {
     if(!_.get(options, 'to')) {
       return reject(new AppError.AppError("to is mandatory"));
     }
     var smtpConfig = _.get(config, 'smtpConfig');
-    log("SendMail smtpConfig: " + JSON.stringify(smtpConfig));
     if (!smtpConfig) {
       resolve({});
     }
