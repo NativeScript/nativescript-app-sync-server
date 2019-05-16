@@ -6,6 +6,8 @@ var models = require('../models');
 var middleware = require('../core/middleware');
 var AccountManager = require('../core/services/account-manager');
 var AppError = require('../core/app-error');
+var log4js = require('log4js');
+var log = log4js.getLogger("cps:account");
 
 router.get('/', middleware.checkToken, (req, res) => {
   res.send({ title: 'CodePushServer' });
@@ -55,7 +57,8 @@ router.get('/exists', (req, res, next) => {
 
 router.post('/registerCode', (req, res, next) => {
   var email = _.get(req, 'body.email');
-  console.log("registerCode called for email: " + email);
+  log.debug('registerCode called for email: ', email);
+
   var accountManager = new AccountManager();
   return accountManager.sendRegisterCode(email)
   .then(() => {
