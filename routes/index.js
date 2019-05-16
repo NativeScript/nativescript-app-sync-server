@@ -32,6 +32,26 @@ router.get('/README.md', (req, res, next) => {
   });
 });
 
+router.get('/WEB_USAGE.md', (req, res, next) => {
+  var MarkdownIt = require('markdown-it');
+  const path = require('path');
+  const fs = require('fs');
+  const readFile = Promise.promisify(fs.readFile);
+  const README = path.join(__dirname, '../WEB_USAGE.md');
+  readFile(README, { encoding: 'utf8' })
+  .then(source => {
+    var md = new MarkdownIt();
+    res.send(md.render(source));
+  })
+  .catch(e=>{
+    if (e instanceof AppError.AppError) {
+      res.send(e.message);
+    } else {
+      next(e);
+    }
+  });
+});
+
 router.get('/tokens', (req, res) => {
   res.render('tokens', { title: 'Get token' });
 });
