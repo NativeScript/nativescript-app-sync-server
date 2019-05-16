@@ -19,7 +19,7 @@ var proto = module.exports = function (){
 };
 
 proto.sendMail = function (options) {
-  log("SendMail called with options: " + JSON.stringify(options));
+  log("SendMail called with options:", options);
   return new Promise((resolve, reject) => {
     if(!_.get(options, 'to')) {
       return reject(new AppError.AppError("to is mandatory"));

@@ -67,10 +67,9 @@ config.development = {
      * if value is 0, no limit for login auth, it may not safe for account. when it's a number, it means you can
      * try that times today. but it need config redis server.
      */
-    tryLoginTimes: 0,
+    tryLoginTimes: 3,
     // CodePush Web(https://github.com/lisong/code-push-web) login address.
     // codePushWebUrl: "http://127.0.0.1:3001",
-    // TODO deploy there
     codePushWebUrl: "https://nativescript-codepush-web.herokuapp.com",
     // create patch updates's number. default value is 3
     diffNums: 3,
