@@ -43,7 +43,7 @@ router.get('/updateCheck', (req, res, next) => {
   var packageHash = _.get(req, "query.packageHash");
   var clientUniqueId = _.get(req, "query.clientUniqueId");
   var clientManager = new ClientManager();
-  log.debug('req.query', req.query);
+  log.info('req.query', req.query);
   clientManager.updateCheckFromCache(deploymentKey, appVersion, label, packageHash, clientUniqueId)
   .then((rs) => {
     //灰度检测
