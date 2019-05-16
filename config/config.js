@@ -86,10 +86,13 @@ config.development = {
   smtpConfig:{
     host: process.env.MAILGUN_SMTP_SERVER,
     port: process.env.MAILGUN_SMTP_PORT,
-    secure: true,
+    secure: false,
     auth: {
       user: process.env.MAILGUN_SMTP_LOGIN,
       pass: process.env.MAILGUN_SMTP_PASSWORD
+    },
+    tls:{
+      ciphers:'SSLv3'
     }
   },
   // Config for redis (register module, tryLoginTimes module)
