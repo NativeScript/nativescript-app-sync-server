@@ -57,7 +57,7 @@ router.get('/exists', (req, res, next) => {
 
 router.post('/registerCode', (req, res, next) => {
   var email = _.get(req, 'body.email');
-  log.debug('registerCode called for email: ', email);
+  log.debug('registerCode called for email:', email);
 
   var accountManager = new AccountManager();
   return accountManager.sendRegisterCode(email)
