@@ -46,8 +46,3 @@ To check the production logs (requires the right credentials 😉):
 ```shell
 heroku logs --app nativescript-codepush-server --tail
 ```
-
-## IGNORE
-[Testing something (iOS)](https://epicurobestsellertest.azurewebsites.net/?utm_source=MichaelTestIOS&utm_campaign=CampaignIOS&utm_medium=email&utm_term=1_6f3694cf9c-159f351e00-291756921#/@pieces/search?query=17094596)
-
-[Testing something (Android)](https://epicurobestsellertest.azurewebsites.net/?utm_source=MichaelTestAndroid&utm_campaign=CampaignAndroid&utm_medium=email&utm_term=2_6f3694cf9c-159f351e00-291756921#/@pieces/search?query=17094596)
