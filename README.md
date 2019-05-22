@@ -1,7 +1,7 @@
 # CodePush Server [source](https://github.com/EddyVerbruggen/code-push-server) 
 
 ## What's this then?
-This CodePush server is like a polyfill for MicroSoft's CodePush server, but with support for NativeScript apps.
+This CodePush server is like a polyfill for Microsoft's CodePush server, but with support for NativeScript apps.
 
 Huge thanks to [this project](https://github.com/lisong/code-push-server) which this project is based upon.
 We didn't fork it because significant (non-unforkeable) changes had to be made (replacing hardcoded Chinese text by English comes to mind).
