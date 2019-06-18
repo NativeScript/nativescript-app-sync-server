@@ -39,7 +39,7 @@ define("RELEAS_EMETHOD_UPLOAD", 'Upload');
 define("DEPLOYMENT_SUCCEEDED", 1);
 define("DEPLOYMENT_FAILED", 2);
 
-define("DIFF_MANIFEST_FILE_NAME", 'hotcodepush.json');
+define("DIFF_MANIFEST_FILE_NAME", 'hotappsync.json');
 
 //文本文件是否使用google diff-match-patch 计算差异
 define("IS_USE_DIFF_TEXT_NO", 0);

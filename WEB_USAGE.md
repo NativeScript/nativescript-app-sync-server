@@ -1,4 +1,4 @@
-# NativeScript CodePush service
+# NativeScript AppSync service
 
 After [logging in](./login), you can...
  

@@ -50,7 +50,7 @@ var models = require('../models');
 models.Versions.findOne({where:{type:1}})
 .then(function(v){
     if (!v || v.get('version') != constConfig.CURRENT_DB_VERSION) {
-        throw new Error('Please upgrade your database. usage `npm run upgrade` or `code-push-server-db upgrade`');
+        throw new Error('Please upgrade your database. usage `npm run upgrade` or `nativescript-app-sync-server-db upgrade`');
     }
     server.listen(port, host);
     server.on('error', onError);
@@ -59,7 +59,7 @@ models.Versions.findOne({where:{type:1}})
 })
 .catch(function(e){
     if (_.startsWith(e.message, 'ER_NO_SUCH_TABLE')) {
-        log.error(new Error(`Please upgrade your database. usage bin/db upgrade or code-push-server-db upgrade`));
+        log.error(new Error(`Please upgrade your database. usage bin/db upgrade or nativescript-app-sync-server-db upgrade`));
     } else {
         log.error(e);
     }

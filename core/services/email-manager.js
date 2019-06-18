@@ -28,9 +28,9 @@ proto.sendMail = function (options) {
     var transporter = nodemailer.createTransport(smtpConfig);
     var sendEmailAddress = _.get(smtpConfig, 'auth.user');
     var defaultMailOptions = {
-      from: `"NativeScript CodePush Server" <${sendEmailAddress}>`, // sender address
+      from: `"NativeScript AppSync Server" <${sendEmailAddress}>`, // sender address
       to: '', // list of receivers (passed in)
-      subject: 'NativeScript CodePush Server', // Subject line
+      subject: 'NativeScript AppSync Server', // Subject line
       html: '' // html body
     };
     var mailOptions = _.assign(defaultMailOptions, options);

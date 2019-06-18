@@ -260,9 +260,9 @@ proto.generateOneDiffPackage = function (
           }
         });
       }
-      var hotCodePushFile = path.join(workDirectoryPath,`${diffManifestBlobHash}_hotcodepush`);;
+      var hotCodePushFile = path.join(workDirectoryPath,`${diffManifestBlobHash}_hotappsync`);
       fs.writeFileSync(hotCodePushFile, JSON.stringify(hotcodepush));
-      var fileName = path.join(workDirectoryPath,`${diffManifestBlobHash}.zip`);;
+      var fileName = path.join(workDirectoryPath,`${diffManifestBlobHash}.zip`);
       return self.zipDiffPackage(fileName, files, dataCenterContentPath, hotCodePushFile)
       .then((data) => {
         return security.qetag(data.path)
@@ -323,7 +323,7 @@ proto.createDiffPackages = function (originalPackage, destPackages, isUseDiffTex
   var package_hash = _.get(originalPackage, 'package_hash');
   var manifest_blob_url = _.get(originalPackage, 'manifest_blob_url');
   var blob_url = _.get(originalPackage, 'blob_url');
-  var workDirectoryPath = path.join(os.tmpdir(), 'codepush_' + security.randToken(32));
+  var workDirectoryPath = path.join(os.tmpdir(), 'appsync_' + security.randToken(32));
   log.debug('workDirectoryPath', workDirectoryPath);
   return common.createEmptyFolder(workDirectoryPath)
   .then(() => self.downloadPackageAndExtract(workDirectoryPath, package_hash, blob_url))
@@ -627,7 +627,7 @@ proto.rollbackPackage = function (deploymentVersionId, targetLabel, rollbackUid)
           }
         }
       }
-      throw new AppError.AppError("No previous CodePush'ed version found for this app version to roll back to.");
+      throw new AppError.AppError("No previous AppSync'ed version found for this app version to roll back to.");
     })
     .then((rollbackPackage) => {
       var params = {

@@ -1,20 +1,18 @@
 {
-  "name": "code-push-server",
-  "description": "NativeScript-compatible CodePush server",
-  "version": "1.0.0",
+  "name": "nativescript-app-sync-server",
+  "description": "NativeScript AppSync server",
+  "version": "1.0.1",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git://github.com/EddyVerbruggen/code-push-server.git"
+    "url": "git://github.com/EddyVerbruggen/nativescript-app-sync-server.git"
   },
   "keywords": [
-    "code-push",
     "nativescript",
-    "react-native",
-    "cordova",
-    "services",
-    "code",
-    "push"
+    "codepush",
+    "code push",
+    "appsync",
+    "app sync"
   ],
   "author": {
     "name": "Eddy Verbruggen",
@@ -22,8 +20,8 @@
     "url": "https://github.com/EddyVerbruggen/"
   },
   "bin": {
-    "code-push-server": "./bin/www",
-    "code-push-server-db": "./bin/db"
+    "nativescript-app-sync-server": "./bin/www",
+    "nativescript-app-sync-server-db": "./bin/db"
   },
   "engines": {
     "node": ">= 6.0",

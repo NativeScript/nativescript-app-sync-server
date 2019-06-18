@@ -168,9 +168,9 @@ security.isPackageHashIgnored = function (relativePath) {
     return true;
   }
 
-  // .codepushrelease contains code sign JWT
+  // .appsyncrelease contains code sign JWT
   // it should be ignored in package hash but need to be included in package manifest
-  const IgnoreCodePushMetadata = '.codepushrelease';
+  const IgnoreCodePushMetadata = '.appsyncrelease';
   return relativePath === IgnoreCodePushMetadata
     || relativePath.endsWith(IgnoreCodePushMetadata)
     || security.isHashIgnored(relativePath);

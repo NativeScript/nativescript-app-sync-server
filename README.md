@@ -1,12 +1,13 @@
-# CodePush Server [source](https://github.com/EddyVerbruggen/code-push-server) 
+# AppSync Server [source](https://github.com/EddyVerbruggen/nativescript-app-sync-server) 
 
 ## What's this then?
-This CodePush server is like a polyfill for Microsoft's CodePush server, but with support for NativeScript apps.
+This AppSync server is similar to Microsoft's CodePush server, but tailored for NativeScript apps,
+working seamlessly with the [NativeScript AppSync plugin](https://github.com/EddyVerbruggen/nativescript-app-sync).
 
 Huge thanks to [this project](https://github.com/lisong/code-push-server) which this project is based upon.
 We didn't fork it because significant (non-unforkeable) changes had to be made (replacing hardcoded Chinese text by English comes to mind).
 
-You can either roll your own clone of this server or use [the shared service we provide](https://nativescript-codepush-server.herokuapp.com/) (which is configured by default by the [NativeScript CodePush plugin](https://github.com/EddyVerbruggen/nativescript-code-push)).
+You can either roll your own clone of this server or use [the shared service we provide](https://nativescript-codepush-server.herokuapp.com/) (which is configured by default by the [NativeScript AppSync plugin](https://github.com/EddyVerbruggen/nativescript-app-sync)).
 
 ## Support Storage mode 
 
@@ -18,19 +19,20 @@ You can either roll your own clone of this server or use [the shared service we 
 
 ### Shell login
 
-With the [NativeScript CodePush CLI]() installed (`npm i -g nativescript-code-push`), you can do:
+With the [NativeScript AppSync CLI]() installed (`npm i -g nativescript-app-sync-cli`), you can do:
 
 ```shell
-$ nativescript-code-push login https://nativescript-codepush-server.herokuapp.com # or your own server endpoint
+$ nativescript-app-sync login
+$ nativescript-app-sync login https://your-own-server-endpoint.com
 ```
 
 ### Web interface 
 
 [nativescript-codepush-server.herokuapp.com](https://nativescript-codepush-server.herokuapp.com/)
 
-## HOW TO INSTALL code-push-server
+## HOW TO INSTALL nativescript-app-sync-server
 
-- [Installation manual](https://github.com/EddyVerbruggen/code-push-server/blob/master/docs/README.md)
+- [Installation manual](https://github.com/EddyVerbruggen/nativescript-app-sync-server/blob/master/docs/README.md)
 
 ## DEFAULT ACCOUNT AND PASSWORD
 

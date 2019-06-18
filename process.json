@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "code-push-server",
+      "name": "nativescript-app-sync-server",
       "max_memory_restart": "300M",
       "script": "./bin/www",
       "instances": "1",
