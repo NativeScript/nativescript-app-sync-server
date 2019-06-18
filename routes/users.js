@@ -10,7 +10,7 @@ var log4js = require('log4js');
 var log = log4js.getLogger("cps:account");
 
 router.get('/', middleware.checkToken, (req, res) => {
-  res.send({ title: 'AppSyncServer' });
+  res.send({ title: 'AppSync Server' });
 });
 
 router.post('/', (req, res, next) => {

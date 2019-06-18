@@ -9,7 +9,7 @@ var log4js = require('log4js');
 var log = log4js.getLogger("cps:index");
 
 router.get('/', (req, res, next) => {
-  res.render('index', { title: 'AppSyncServer' });
+  res.render('index', { title: 'AppSync Server' });
 });
 
 router.get('/README.md', (req, res, next) => {
