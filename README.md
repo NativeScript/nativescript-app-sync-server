@@ -7,7 +7,7 @@ working seamlessly with the [NativeScript AppSync plugin](https://github.com/Edd
 Huge thanks to [this project](https://github.com/lisong/code-push-server) which this project is based upon.
 We didn't fork it because significant (non-unforkeable) changes had to be made (replacing hardcoded Chinese text by English comes to mind).
 
-You can either roll your own clone of this server or use [the shared service we provide](https://nativescript-codepush-server.herokuapp.com/) (which is configured by default by the [NativeScript AppSync plugin](https://github.com/EddyVerbruggen/nativescript-app-sync)).
+You can either roll your own clone of this server or use [the shared service we provide](https://appsync-server.nativescript.org/) (which is configured by default by the [NativeScript AppSync plugin](https://github.com/EddyVerbruggen/nativescript-app-sync)).
 
 ## Support Storage mode 
 
@@ -28,7 +28,7 @@ $ nativescript-app-sync login https://your-own-server-endpoint.com
 
 ### Web interface 
 
-[nativescript-codepush-server.herokuapp.com](https://nativescript-codepush-server.herokuapp.com/)
+[appsync-server.nativescript.org](https://appsync-server.nativescript.org/)
 
 ## HOW TO INSTALL nativescript-app-sync-server
 

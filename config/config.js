@@ -52,7 +52,7 @@ config.development = {
     storageDir: process.env.STORAGE_DIR || "/app/_storage", // TODO this gets wiped upon deploy.. so move to The Cloud™️
     // storageDir: process.env.STORAGE_DIR || "./_storage",
     // Binary files download host address which Code Push Server listen to. the files storage in storageDir.
-    downloadUrl: process.env.LOCAL_DOWNLOAD_URL || "https://nativescript-codepush-server.herokuapp.com/download",
+    downloadUrl: process.env.LOCAL_DOWNLOAD_URL || "https://appsync-server.nativescript.org/download",
     // public static download spacename.
     public: '/download'
   },
@@ -70,7 +70,7 @@ config.development = {
     tryLoginTimes: 3,
     // CodePush Web(https://github.com/lisong/code-push-web) login address.
     // codePushWebUrl: "http://127.0.0.1:3001",
-    codePushWebUrl: "https://nativescript-codepush-web.herokuapp.com",
+    codePushWebUrl: "https://appsync.nativescript.org",
     // create patch updates's number. default value is 3
     diffNums: 3,
     // data dir for caclulate diff files. it's optimization.
