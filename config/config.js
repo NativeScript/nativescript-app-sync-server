@@ -84,12 +84,12 @@ config.development = {
   },
   // Config for smtp email，register module need validate user email project source https://github.com/nodemailer/nodemailer
   smtpConfig:{
-    host: process.env.SENDGRID_SMTP_SERVER,
-    port: process.env.SENDGRID_SMTP_PORT,
+    host: process.env.MAILGUN_SMTP_SERVER,
+    port: process.env.MAILGUN_SMTP_PORT,
     secure: false,
     auth: {
-      user: process.env.SENDGRID_USERNAME,
-      pass: process.env.SENDGRID_PASSWORD
+      user: process.env.MAILGUN_SMTP_LOGIN,
+      pass: process.env.MAILGUN_SMTP_PASSWORD
     },
     tls:{
       ciphers:'SSLv3'
