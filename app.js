@@ -1,6 +1,5 @@
 var express = require('express');
 var path = require('path');
-var favicon = require('serve-favicon');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var helmet = require('helmet');
@@ -20,16 +19,12 @@ var log = log4js.getLogger("cps:app");
 var app = express();
 app.use(helmet());
 app.disable('x-powered-by');
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
 
 app.use(log4js.connectLogger(log4js.getLogger("http"), {level: log4js.levels.INFO, nolog:'\\.gif|\\.jpg|\\.js|\\.css$' }));
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 
 //use nginx in production
 //if (app.get('env') === 'development') {
