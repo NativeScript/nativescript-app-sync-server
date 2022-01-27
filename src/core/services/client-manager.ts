@@ -1,56 +1,48 @@
-import models from '../../models/db'
+import * as models from '../../models'
 import _ from 'lodash'
-import common from '../utils/common'
-import factory from '../utils/redis'
-import AppError from '../app-error'
-import config from '../config'
+import * as common from '../utils/common'
+import constConfig from '../constants';
+import * as redis from '../utils/redis'
+import { AppError } from '../app-error'
+import * as config from '../config'
 import log4js from 'log4js'
 import Sequelize from 'sequelize'
+import Promise from 'bluebird'
 
 const log = log4js.getLogger("cps:ClientManager")
 
-
-var proto = module.exports = function () {
-  function ClientManager() {
-
-  }
-  ClientManager.__proto__ = proto;
-  return ClientManager;
-};
 
 const UPDATE_CHECK = "UPDATE_CHECK";
 const CHOSEN_MAN = "CHOSEN_MAN";
 const EXPIRED = 600;
 
-proto.getUpdateCheckCacheKey = function (deploymentKey, appVersion, label, packageHash) {
+export const getUpdateCheckCacheKey = function (deploymentKey, appVersion, label, packageHash) {
   return [UPDATE_CHECK, deploymentKey, appVersion, label, packageHash].join(':');
 }
 
-proto.clearUpdateCheckCache = function (deploymentKey, appVersion, label, packageHash) {
+export const clearUpdateCheckCache = function (deploymentKey, appVersion, label, packageHash) {
   log.debug('clear cache Deployments key:', deploymentKey);
-  let redisCacheKey = this.getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
-  var client = factory.getRedisClient("default");
-  return client.keysAsync(redisCacheKey)
+  let redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
+  return redis.client.keys(redisCacheKey)
     .then((data) => {
       if (_.isArray(data)) {
         return Promise.map(data, (key) => {
-          return client.delAsync(key);
+          return redis.client.del(key);
         });
       }
       return null;
     })
-    .finally(() => client.quit());
+    .finally(() => redis.client.quit());
 }
 
-proto.updateCheckFromCache = function (deploymentKey, appVersion, label, packageHash, clientUniqueId) {
-  const self = this;
+export const updateCheckFromCache = function (deploymentKey, appVersion, label, packageHash, clientUniqueId) {
   var updateCheckCache = _.get(config, 'common.updateCheckCache', false);
   if (updateCheckCache === false) {
-    return self.updateCheck(deploymentKey, appVersion, label, packageHash);
+    return updateCheck(deploymentKey, appVersion, label, packageHash);
   }
-  let redisCacheKey = self.getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
-  var client = factory.getRedisClient("default");
-  return client.getAsync(redisCacheKey)
+  let redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
+
+  return redis.client.get(redisCacheKey)
     .then((data) => {
       if (data) {
         try {
@@ -60,25 +52,25 @@ proto.updateCheckFromCache = function (deploymentKey, appVersion, label, package
         } catch (e) {
         }
       }
-      return self.updateCheck(deploymentKey, appVersion, label, packageHash, clientUniqueId)
+      return updateCheck(deploymentKey, appVersion, label, packageHash, clientUniqueId)
         .then((rs) => {
           try {
             log.debug('updateCheckFromCache read from db');
             var strRs = JSON.stringify(rs);
-            client.setexAsync(redisCacheKey, EXPIRED, strRs);
+            redis.client.setEx(redisCacheKey, EXPIRED, strRs);
           } catch (e) {
           }
           return rs;
         });
     })
-    .finally(() => client.quit());
+    .finally(() => redis.client.quit());
 }
 
-proto.getChosenManCacheKey = function (packageId, rollout, clientUniqueId) {
+export const getChosenManCacheKey = function (packageId, rollout, clientUniqueId) {
   return [CHOSEN_MAN, packageId, rollout, clientUniqueId].join(':');
 }
 
-proto.random = function (rollout) {
+export const random = function (rollout) {
   var r = Math.ceil(Math.random() * 10000);
   if (r < rollout * 100) {
     return Promise.resolve(true);
@@ -87,27 +79,26 @@ proto.random = function (rollout) {
   }
 }
 
-proto.chosenMan = function (packageId, rollout, clientUniqueId) {
-  var self = this;
+export const chosenMan = function (packageId, rollout, clientUniqueId) {
   if (rollout >= 100) {
     return Promise.resolve(true);
   }
   var rolloutClientUniqueIdCache = _.get(config, 'common.rolloutClientUniqueIdCache', false);
   if (rolloutClientUniqueIdCache === false) {
-    return self.random(rollout);
+    return random(rollout);
   } else {
-    var client = factory.getRedisClient("default");
-    var redisCacheKey = self.getChosenManCacheKey(packageId, rollout, clientUniqueId);
-    return client.getAsync(redisCacheKey)
+    var client = redis.client
+    var redisCacheKey = getChosenManCacheKey(packageId, rollout, clientUniqueId);
+    return client.get(redisCacheKey)
       .then((data) => {
-        if (data == 1) {
+        if (Number(data) == 1) {
           return true;
-        } else if (data == 2) {
+        } else if (Number(data) == 2) {
           return false;
         } else {
-          return self.random(rollout)
+          return random(rollout)
             .then((r) => {
-              return client.setexAsync(redisCacheKey, 60 * 60 * 24 * 7, r ? 1 : 2)
+              return client.setEx(redisCacheKey as any, 60 * 60 * 24 * 7, r ? '1' : '2')
                 .then(() => {
                   return r;
                 });
@@ -118,7 +109,7 @@ proto.chosenMan = function (packageId, rollout, clientUniqueId) {
   }
 }
 
-proto.updateCheck = function (deploymentKey, appVersion, label, packageHash, clientUniqueId) {
+export const updateCheck = function (deploymentKey: string, appVersion: string, label: string, packageHash: string, clientUniqueId?: number) {
   var rs = {
     packageId: 0,
     downloadURL: "",
@@ -134,19 +125,19 @@ proto.updateCheck = function (deploymentKey, appVersion, label, packageHash, cli
     shouldRunBinaryVersion: false,
     rollout: 100
   };
-  var self = this;
+
   if (_.isEmpty(deploymentKey) || _.isEmpty(appVersion)) {
-    return Promise.reject(new AppError.AppError("please input deploymentKey and appVersion"))
+    return Promise.reject(new AppError("please input deploymentKey and appVersion"))
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
       if (_.isEmpty(dep)) {
-        throw new AppError.AppError('Not found deployment, check deployment key is right.');
+        throw new AppError('Not found deployment, check deployment key is right.');
       }
       var version = common.parseVersion(appVersion);
       return models.DeploymentsVersions.findAll({
         where: {
-          deployment_id: dep.id,
+          deployment_id: dep?.id,
           min_version: { [Sequelize.Op.lte]: version },
           max_version: { [Sequelize.Op.gt]: version }
         }
@@ -156,11 +147,13 @@ proto.updateCheck = function (deploymentKey, appVersion, label, packageHash, cli
           var item = null;
           _.map(deploymentsVersionsMore, function (value, index) {
             if (index == 0) {
+              // @ts-ignore
               item = value;
               distance = value.max_version - value.min_version;
             } else {
               if (distance > (value.max_version - value.min_version)) {
                 distance = value.max_version - value.min_version;
+                // @ts-ignore
                 item = value;
               }
             }
@@ -169,12 +162,12 @@ proto.updateCheck = function (deploymentKey, appVersion, label, packageHash, cli
           return item;
         });
     })
-    .then((deploymentsVersions) => {
+    .then((deploymentsVersions: any) => {
       var packageId = _.get(deploymentsVersions, 'current_package_id', 0);
       if (_.eq(packageId, 0)) {
         return;
       }
-      return models.Packages.findById(packageId)
+      return models.Packages.findByPk(packageId)
         .then((packages) => {
           if (packages
             && _.eq(packages.deployment_id, deploymentsVersions.deployment_id)
@@ -195,7 +188,7 @@ proto.updateCheck = function (deploymentKey, appVersion, label, packageHash, cli
         .then((packages) => {
           //增量更新
           if (!_.isEmpty(packages) && !_.eq(_.get(packages, 'package_hash', ""), packageHash)) {
-            return models.PackagesDiff.findOne({ where: { package_id: packages.id, diff_against_package_hash: packageHash } })
+            return models.PackagesDiff.findOne({ where: { package_id: packages?.id, diff_against_package_hash: packageHash } })
               .then((diffPackage) => {
                 if (!_.isEmpty(diffPackage)) {
                   rs.downloadURL = common.getBlobDownloadUrl(_.get(diffPackage, 'diff_blob_url'));
@@ -214,27 +207,27 @@ proto.updateCheck = function (deploymentKey, appVersion, label, packageHash, cli
     });
 };
 
-proto.getPackagesInfo = function (deploymentKey, label) {
+export const getPackagesInfo = function (deploymentKey, label) {
   if (_.isEmpty(deploymentKey) || _.isEmpty(label)) {
-    return Promise.reject(new AppError.AppError("please input deploymentKey and label"))
+    return Promise.reject(new AppError("please input deploymentKey and label"))
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
       if (_.isEmpty(dep)) {
-        throw new AppError.AppError('does not found deployment');
+        throw new AppError('does not found deployment');
       }
-      return models.Packages.findOne({ where: { deployment_id: dep.id, label: label } });
+      return models.Packages.findOne({ where: { deployment_id: dep?.id, label: label } });
     })
     .then((packages) => {
       if (_.isEmpty(packages)) {
-        throw new AppError.AppError('does not found packages');
+        throw new AppError('does not found packages');
       }
       return packages;
     });
 };
 
-proto.reportStatusDownload = function (deploymentKey, label, clientUniqueId) {
-  return this.getPackagesInfo(deploymentKey, label)
+export const reportStatusDownload = function (deploymentKey, label, clientUniqueId) {
+  return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
       return Promise.all([
         models.PackagesMetrics.findOne({ where: { package_id: packages.id } })
@@ -252,67 +245,66 @@ proto.reportStatusDownload = function (deploymentKey, label, clientUniqueId) {
     });
 };
 
-proto.reportStatusDeploy = function (deploymentKey, label, clientUniqueId, others) {
-  return this.getPackagesInfo(deploymentKey, label)
+export const reportStatusDeploy = function (deploymentKey, label, clientUniqueId, others) {
+  return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
-      var constConfig from '../const');
-  var statusText = _.get(others, "status");
-  var status = 0;
-  if (_.eq(statusText, "DeploymentSucceeded")) {
-    status = constConfig.DEPLOYMENT_SUCCEEDED;
-  } else if (_.eq(statusText, "DeploymentFailed")) {
-    status = constConfig.DEPLOYMENT_FAILED;
-  }
-  var packageId = packages.id;
-  var previous_deployment_key = _.get(others, 'previousDeploymentKey');
-  var previous_label = _.get(others, 'previousLabelOrAppVersion');
-  if (status > 0) {
-    return Promise.all([
-      models.LogReportDeploy.create({
-        package_id: packageId,
-        client_unique_id: clientUniqueId,
-        previous_label: previous_label,
-        previous_deployment_key: previous_deployment_key,
-        status: status
-      }),
-      models.PackagesMetrics.findOne({ where: { package_id: packageId } })
-        .then((metrics) => {
-          if (_.isEmpty(metrics)) {
-            return;
-          }
-          if (constConfig.DEPLOYMENT_SUCCEEDED) {
-            return metrics.increment(['installed', 'active'], { by: 1 });
-          } else {
-            return metrics.increment(['installed', 'failed'], { by: 1 });
-          }
-        })
-    ])
-      .then(() => {
-        if (previous_deployment_key && previous_label) {
-          return models.Deployments.findOne({ where: { deployment_key: previous_deployment_key } })
-            .then((dep) => {
-              if (_.isEmpty(dep)) {
+      var statusText = _.get(others, "status");
+      var status = 0;
+      if (_.eq(statusText, "DeploymentSucceeded")) {
+        status = constConfig.DEPLOYMENT_SUCCEEDED;
+      } else if (_.eq(statusText, "DeploymentFailed")) {
+        status = constConfig.DEPLOYMENT_FAILED;
+      }
+      var packageId = packages.id;
+      var previous_deployment_key = _.get(others, 'previousDeploymentKey');
+      var previous_label = _.get(others, 'previousLabelOrAppVersion');
+      if (status > 0) {
+        return Promise.all([
+          models.LogReportDeploy.create({
+            package_id: packageId,
+            client_unique_id: clientUniqueId,
+            previous_label: previous_label,
+            previous_deployment_key: previous_deployment_key,
+            status: status
+          }),
+          models.PackagesMetrics.findOne({ where: { package_id: packageId } })
+            .then((metrics) => {
+              if (_.isEmpty(metrics)) {
                 return;
               }
-              return models.Packages.findOne({ where: { deployment_id: dep.id, label: previous_label } })
-                .then((p) => {
-                  if (_.isEmpty(p)) {
+              if (constConfig.DEPLOYMENT_SUCCEEDED) {
+                return metrics?.increment(['installed', 'active'], { by: 1 });
+              } else {
+                return metrics?.increment(['installed', 'failed'], { by: 1 });
+              }
+            })
+        ])
+          .then(() => {
+            if (previous_deployment_key && previous_label) {
+              return models.Deployments.findOne({ where: { deployment_key: previous_deployment_key } })
+                .then((dep) => {
+                  if (_.isEmpty(dep)) {
                     return;
                   }
-                  return models.PackagesMetrics.findOne({ where: { package_id: p.id } });
+                  return models.Packages.findOne({ where: { deployment_id: dep?.id, label: previous_label } })
+                    .then((p) => {
+                      if (_.isEmpty(p)) {
+                        return;
+                      }
+                      return models.PackagesMetrics.findOne({ where: { package_id: p?.id } });
+                    });
+                })
+                .then((metrics) => {
+                  if (metrics) {
+                    return metrics.decrement('active');
+                  }
+                  return;
                 });
-            })
-            .then((metrics) => {
-              if (metrics) {
-                return metrics.decrement('active');
-              }
-              return;
-            });
-        }
+            }
+            return;
+          });
+      } else {
         return;
-      });
-  } else {
-    return;
-  }
-});
+      }
+    });
 };

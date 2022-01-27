@@ -138,6 +138,7 @@ export const uploadPackageType = function (directoryPath) {
               packageType = constName.IOS;
               return false;
             }
+            return
           });
           log.debug(`uploadPackageType packageType: ${packageType}`);
           resolve(packageType);

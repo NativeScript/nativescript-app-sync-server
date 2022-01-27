@@ -1,11 +1,12 @@
 import {
   DataTypes, Model, Optional
 } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface UserTokensAttributes {
   id: number
   uid: number
+  is_session: number
   name: string
   tokens: string
   description: string
@@ -14,7 +15,7 @@ interface UserTokensAttributes {
   created_at?: Date | string
 }
 
-interface UserTokensCreationAttributes extends Optional<UserTokensAttributes, "id"> { }
+interface UserTokensCreationAttributes extends Optional<UserTokensAttributes, "id" | "is_session"> { }
 interface UserTokensInstance extends Model<UserTokensAttributes, UserTokensCreationAttributes>,
   UserTokensAttributes { }
 

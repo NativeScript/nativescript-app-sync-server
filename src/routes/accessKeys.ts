@@ -1,15 +1,15 @@
 import express from 'express'
 import _ from 'lodash'
-import security from '../core/utils/security'
-import models from '../models/db'
-import middleware from '../core/middleware'
-import am from '../core/services/account-manager'
-import AppError from '../core/app-error'
+import * as security from '../core/utils/security'
+import * as models from '../models'
+import * as middleware from '../core/middleware'
+import * as accountManager from '../core/services/account-manager'
+import { AppError } from '../core/app-error'
 import log4js from 'log4js'
+import moment from 'moment'
 
 const log = log4js.getLogger("cps:accessKey")
 const router = express.Router();
-const accountManager = am()
 
 router.get('/', middleware.checkToken, (req, res, next) => {
   var uid = req.users.id;
@@ -34,33 +34,32 @@ router.post('/', middleware.checkToken, (req, res, next) => {
   return accountManager.isExsitAccessKeyName(uid, friendlyName)
     .then((data) => {
       if (!_.isEmpty(data)) {
-        throw new AppError.AppError(`The access key "${friendlyName}"  already exists.`);
+        throw new AppError(`The access key "${friendlyName}"  already exists.`);
       }
     })
     .then(() => {
       return accountManager.createAccessKey(uid, newAccessKey, ttl, friendlyName, createdBy, description);
     })
     .then((newToken) => {
-      var moment = from "moment");
-  var info = {
-    name: newToken.tokens,
-    createdTime: parseInt(moment(newToken.created_at).format('x')),
-    createdBy: newToken.created_by,
-    expires: parseInt(moment(newToken.expires_at).format('x')),
-    description: newToken.description,
-    friendlyName: newToken.name,
-  };
-  log.debug(info);
-  res.send({ accessKey: info });
-})
-  .catch((e) => {
-    if (e instanceof AppError.AppError) {
-      log.debug(e);
-      res.status(406).send(e.message);
-    } else {
-      next(e);
-    }
-  });
+      var info = {
+        name: newToken.tokens,
+        createdTime: parseInt(moment(newToken.created_at).format('x')),
+        createdBy: newToken.created_by,
+        expires: parseInt(moment(newToken.expires_at).format('x')),
+        description: newToken.description,
+        friendlyName: newToken.name,
+      };
+      log.debug(info);
+      res.send({ accessKey: info });
+    })
+    .catch((e) => {
+      if (e instanceof AppError) {
+        log.debug(e);
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    });
 });
 
 router.delete('/:name', middleware.checkToken, (req, res, next) => {
@@ -72,7 +71,7 @@ router.delete('/:name', middleware.checkToken, (req, res, next) => {
       res.send({ friendlyName: name });
     })
     .catch((e) => {
-      if (e instanceof AppError.AppError) {
+      if (e instanceof AppError) {
         log.debug(e);
         res.status(406).send(e.message);
       } else {
@@ -80,4 +79,4 @@ router.delete('/:name', middleware.checkToken, (req, res, next) => {
       }
     });
 });
-module.exports = router;
+export default router;

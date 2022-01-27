@@ -1,5 +1,5 @@
 import { Optional, Model, Sequelize, DataTypes } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 export interface ICollaboratorAttributes {
   id: number;

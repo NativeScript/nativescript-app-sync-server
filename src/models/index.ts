@@ -1,5 +1,5 @@
 
-import { sequelize as seq } from './db'
+import { sequelize as seq } from '../db'
 export { default as Apps } from './apps'
 export { default as Collaborators } from './collaborators'
 export { default as Deployments } from './deployments'

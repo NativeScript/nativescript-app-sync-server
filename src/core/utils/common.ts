@@ -1,21 +1,31 @@
-'use strict';
-var Promise = require('bluebird');
-var fs = require("fs");
-var fsextra = require("fs-extra");
-var extract = require('extract-zip')
-var config    = require('../config');
-var _ = require('lodash');
-var validator = require('validator');
-var qiniu = require("qiniu");
-var common = {};
-var AppError = require('../app-error');
-var jschardet = require("jschardet");
-var log4js = require('log4js');
-var path = require('path');
-var log = log4js.getLogger("cps:utils:common");
-module.exports = common;
+import Promise from 'bluebird'
+import fs from "fs"
+import fsextra from "fs-extra"
+import extract from 'extract-zip'
+import config from '../config'
+import _ from 'lodash'
+import validator from 'validator'
+import qiniu from "qiniu"
+import { AppError } from '../app-error'
+import jschardet from "jschardet"
+import log4js from 'log4js'
+import path from 'path'
+const log = log4js.getLogger("cps:utils:common")
 
-common.detectIsTextFile = function(filePath) {
+
+export const slash = (path) => {
+  const isExtendedLengthPath = /^\\\\\?\\/.test(path);
+  const hasNonAscii = /[^\u0000-\u0080]+/.test(path);
+
+  if (isExtendedLengthPath || hasNonAscii) {
+    return path;
+  }
+
+  return path.replace(/\\/g, '/');
+}
+
+
+export const detectIsTextFile = function (filePath) {
   var fd = fs.openSync(filePath, 'r');
   var buffer = new Buffer(4096);
   fs.readSync(fd, buffer, 0, 4096, 0);
@@ -28,7 +38,7 @@ common.detectIsTextFile = function(filePath) {
   return false;
 }
 
-common.parseVersion = function (versionNo) {
+export const parseVersion = function (versionNo) {
   var version = '0';
   var data = null;
   if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
@@ -41,7 +51,7 @@ common.parseVersion = function (versionNo) {
   return version;
 };
 
-common.validatorVersion = function (versionNo) {
+export const validatorVersion = function (versionNo) {
   var flag = false;
   var min = '0';
   var max = '9999999999999999999';
@@ -53,27 +63,27 @@ common.validatorVersion = function (versionNo) {
     // "1.2.3"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = data[1] + _.padStart(data[2], 5, '0') + _.padStart((parseInt(data[3])+1), 10, '0');
+    max = data[1] + _.padStart(data[2], 5, '0') + _.padStart((String(data[3]) + 1), 10, '0');
   } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5})(\.\*){0,1}$/)) {
     // "1.2" "1.2.*"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart('0', 10, '0');
-    max = data[1] + _.padStart((parseInt(data[2])+1), 5, '0') + _.padStart('0', 10, '0');
+    max = data[1] + _.padStart((String(data[2]) + 1), 5, '0') + _.padStart('0', 10, '0');
   } else if (data = versionNo.match(/^\~([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     //"~1.2.3"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = data[1] + _.padStart((parseInt(data[2])+1), 5, '0') + _.padStart('0', 10, '0');
+    max = data[1] + _.padStart((String(data[2]) + 1), 5, '0') + _.padStart('0', 10, '0');
   } else if (data = versionNo.match(/^\^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     //"^1.2.3"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = _.toString((parseInt(data[1])+1)) + _.padStart(0, 5, '0') + _.padStart('0', 10, '0');
+    max = _.toString((parseInt(data[1]) + 1)) + _.padStart('0', 5, '0') + _.padStart('0', 10, '0');
   } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})\s?-\s?([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     // "1.2.3 - 1.2.7"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = data[4] + _.padStart(data[5], 5, '0') + _.padStart((parseInt(data[6])+1), 10, '0');
+    max = data[4] + _.padStart(data[5], 5, '0') + _.padStart((String(data[6]) + 1), 10, '0');
   } else if (data = versionNo.match(/^>=([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})\s?<([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     // ">=1.2.3 <1.2.7"
     flag = true;
@@ -83,7 +93,7 @@ common.validatorVersion = function (versionNo) {
   return [flag, min, max];
 };
 
-common.createFileFromRequest = function (url, filePath) {
+export const createFileFromRequest = function (url, filePath) {
   return new Promise((resolve, reject) => {
     fs.exists(filePath, function (exists) {
       if (!exists) {
@@ -92,34 +102,34 @@ common.createFileFromRequest = function (url, filePath) {
         request(url).on('error', function (error) {
           reject(error);
         })
-        .on('response', function (response) {
-          if (response.statusCode == 200) {
-            let stream = fs.createWriteStream(filePath);
-            response.pipe(stream);
-            stream.on('close',function(){
-              resolve(null);
-            });
-            stream.on('error', function (error) {
-              reject(error)
-            })
-          } else {
-            reject({message:'request fail'})
-          }
-        });
-      }else {
+          .on('response', function (response) {
+            if (response.statusCode == 200) {
+              let stream = fs.createWriteStream(filePath);
+              response.pipe(stream);
+              stream.on('close', function () {
+                resolve(null);
+              });
+              stream.on('error', function (error) {
+                reject(error)
+              })
+            } else {
+              reject({ message: 'request fail' })
+            }
+          });
+      } else {
         resolve(null);
       }
     });
   });
 };
 
-common.copySync = function (sourceDst, targertDst) {
-  return fsextra.copySync(sourceDst, targertDst, {overwrite: true});
+export const copySync = function (sourceDst, targertDst) {
+  return fsextra.copySync(sourceDst, targertDst, { overwrite: true });
 };
 
-common.copy = function (sourceDst, targertDst) {
+export const copy = function (sourceDst, targertDst) {
   return new Promise((resolve, reject) => {
-    fsextra.copy(sourceDst, targertDst, {overwrite: true}, function (err) {
+    fsextra.copy(sourceDst, targertDst, { overwrite: true }, function (err) {
       if (err) {
         log.error(err);
         reject(err);
@@ -131,9 +141,9 @@ common.copy = function (sourceDst, targertDst) {
   });
 };
 
-common.move = function (sourceDst, targertDst) {
+export const move = function (sourceDst, targertDst) {
   return new Promise((resolve, reject) => {
-    fsextra.move(sourceDst, targertDst, {overwrite: true}, function (err) {
+    fsextra.move(sourceDst, targertDst, { overwrite: true }, function (err) {
       if (err) {
         log.error(err);
         reject(err);
@@ -145,13 +155,13 @@ common.move = function (sourceDst, targertDst) {
   });
 };
 
-common.deleteFolder = function (folderPath) {
+export const deleteFolder = function (folderPath) {
   return new Promise((resolve, reject) => {
     fsextra.remove(folderPath, function (err) {
       if (err) {
         log.error(err);
         reject(err);
-      }else {
+      } else {
         log.debug(`deleteFolder delete ${folderPath} success.`);
         resolve(null);
       }
@@ -159,55 +169,54 @@ common.deleteFolder = function (folderPath) {
   });
 };
 
-common.deleteFolderSync = function (folderPath) {
+export const deleteFolderSync = function (folderPath) {
   return fsextra.removeSync(folderPath);
 };
 
-common.createEmptyFolder = function (folderPath) {
+export const createEmptyFolder = function (folderPath) {
   return new Promise((resolve, reject) => {
     log.debug(`createEmptyFolder Create dir ${folderPath}`);
-    return common.deleteFolder(folderPath)
-    .then((data) => {
-      fsextra.mkdirs(folderPath, (err) => {
-        if (err) {
-          log.error(err);
-          reject(new AppError.AppError(err.message));
-        } else {
-          resolve(folderPath);
-        }
+    return deleteFolder(folderPath)
+      .then((data) => {
+        fsextra.mkdirs(folderPath, (err) => {
+          if (err) {
+            log.error(err);
+            reject(new AppError(err.message));
+          } else {
+            resolve(folderPath);
+          }
+        });
       });
-    });
   });
 };
 
-common.createEmptyFolderSync = function (folderPath) {
-  common.deleteFolderSync(folderPath);
+export const createEmptyFolderSync = function (folderPath) {
+  deleteFolderSync(folderPath);
   return fsextra.mkdirsSync(folderPath);
 };
 
-common.unzipFile = function (zipFile, outputPath) {
+export const unzipFile = function (zipFile, outputPath) {
   return new Promise((resolve, reject) => {
     try {
-      log.debug(`unzipFile check zipFile ${zipFile} fs.R_OK`);
-      fs.accessSync(zipFile, fs.R_OK);
+      log.debug(`unzipFile check zipFile ${zipFile} fs.constants.R_OK`);
+      fs.accessSync(zipFile, fs.constants.R_OK);
       log.debug(`Pass unzipFile file ${zipFile}`);
-    } catch (e) {
+    } catch (e: any) {
       log.error(e);
-      return reject(new AppError.AppError(e.message))
+      return reject(new AppError(e.message))
     }
-    extract(zipFile, {dir: outputPath}, function(err){
-      if (err) {
+    extract(zipFile, { dir: outputPath }).then(function (res) {
+      log.debug(`unzipFile success`);
+      resolve(outputPath);
+    }).catch((err) => {
+      if (err)
         log.error(err);
-        reject(new AppError.AppError(`it's not a zipFile`))
-      } else {
-        log.debug(`unzipFile success`);
-        resolve(outputPath);
-      }
-    });
+      reject(new AppError(`it's not a zipFile`))
+    })
   });
 };
 
-common.getUploadTokenQiniu = function (mac, bucket, key) {
+export const getUploadTokenQiniu = function (mac, bucket, key) {
   var options = {
     scope: bucket + ":" + key
   }
@@ -215,42 +224,42 @@ common.getUploadTokenQiniu = function (mac, bucket, key) {
   return putPolicy.uploadToken(mac);
 };
 
-common.uploadFileToStorage = function (key, filePath) {
-  var storageType = _.get(config, 'common.storageType');
+export const uploadFileToStorage = function (key, filePath) {
+  var storageType = _.get(config, 'export const storageType');
   console.log(">>>> storageType: " + storageType);
   console.log(">>>> storageType, key: " + key);
   console.log(">>>> storageType, filePath: " + filePath);
-  if ( storageType === 'local') {
-    return common.uploadFileToLocal(key, filePath);
+  if (storageType === 'local') {
+    return uploadFileToLocal(key, filePath);
   } else if (storageType === 's3') {
-    return common.uploadFileToS3(key, filePath);
+    return uploadFileToS3(key, filePath);
   } else if (storageType === 'oss') {
-    return common.uploadFileToOSS(key, filePath);
+    return uploadFileToOSS(key, filePath);
   } else if (storageType === 'qiniu') {
-    return common.uploadFileToQiniu(key, filePath);
+    return uploadFileToQiniu(key, filePath);
   } else if (storageType === 'tencentcloud') {
-    return common.uploadFileToTencentCloud(key, filePath);
+    return uploadFileToTencentCloud(key, filePath);
   }
-  throw new AppError.AppError(`${storageType} storageType does not support.`);
+  throw new AppError(`${storageType} storageType does not support.`);
 };
 
-common.uploadFileToLocal = function (key, filePath) {
+export const uploadFileToLocal = function (key, filePath) {
   return new Promise((resolve, reject) => {
     var storageDir = _.get(config, 'local.storageDir');
     if (!storageDir) {
-      throw new AppError.AppError('please set config local storageDir');
+      throw new AppError('please set config local storageDir');
     }
     if (key.length < 3) {
       log.error(`generate key is too short, key value:${key}`);
-      throw new AppError.AppError('generate key is too short.');
+      throw new AppError('generate key is too short.');
     }
     try {
-      log.debug(`uploadFileToLocal check directory ${storageDir} fs.R_OK`);
-      fs.accessSync(storageDir, fs.W_OK);
-      log.debug(`uploadFileToLocal directory ${storageDir} fs.R_OK is ok`);
-    } catch (e) {
+      log.debug(`uploadFileToLocal check directory ${storageDir} fs.constants.R_OK`);
+      fs.accessSync(storageDir, fs.constants.W_OK);
+      log.debug(`uploadFileToLocal directory ${storageDir} fs.constants.R_OK is ok`);
+    } catch (e: any) {
       log.error(e);
-      throw new AppError.AppError(e.message);
+      throw new AppError(e.message);
     }
     var subDir = key.substr(0, 2).toLowerCase();
     var finalDir = path.join(storageDir, subDir);
@@ -260,7 +269,7 @@ common.uploadFileToLocal = function (key, filePath) {
     }
     var stats = fs.statSync(storageDir);
     if (!stats.isDirectory()) {
-      var e = new AppError.AppError(`${storageDir} must be directory`);
+      var e = new AppError(`${storageDir} must be directory`);
       log.error(e);
       throw e;
     }
@@ -269,21 +278,21 @@ common.uploadFileToLocal = function (key, filePath) {
       log.debug(`uploadFileToLocal mkdir:${finalDir}`);
     }
     try {
-     fs.accessSync(filePath, fs.R_OK);
-    } catch (e) {
+      fs.accessSync(filePath, fs.constants.R_OK);
+    } catch (e: any) {
       log.error(e);
-      throw new AppError.AppError(e.message);
+      throw new AppError(e.message);
     }
     stats = fs.statSync(filePath);
     if (!stats.isFile()) {
-      var e = new AppError.AppError(`${filePath} must be file`);
+      var e = new AppError(`${filePath} must be file`);
       log.error(e);
       throw e;
     }
-    fsextra.copy(filePath, fileName,(err) => {
+    fsextra.copy(filePath, fileName, (err) => {
       if (err) {
-        log.error(new AppError.AppError(err.message));
-        return reject(new AppError.AppError(err.message));
+        log.error(new AppError(err.message));
+        return reject(new AppError(err.message));
       }
       log.debug(`uploadFileToLocal copy file ${key} success.`);
       resolve(key);
@@ -291,15 +300,15 @@ common.uploadFileToLocal = function (key, filePath) {
   });
 };
 
-common.getBlobDownloadUrl = function (blobUrl) {
+export const getBlobDownloadUrl = function (blobUrl) {
   var fileName = blobUrl;
-  var storageType = _.get(config, 'common.storageType');
+  var storageType = _.get(config, 'export const storageType');
   var downloadUrl = _.get(config, `${storageType}.downloadUrl`);
-  if ( storageType === 'local') {
+  if (storageType === 'local') {
     fileName = blobUrl.substr(0, 2).toLowerCase() + '/' + blobUrl;
   }
   if (!validator.isURL(downloadUrl)) {
-    var e = new AppError.AppError(`Please config ${storageType}.downloadUrl in config.js`);
+    var e = new AppError(`Please config ${storageType}.downloadUrl in config.js`);
     log.error(e);
     throw e;
   }
@@ -307,7 +316,7 @@ common.getBlobDownloadUrl = function (blobUrl) {
 };
 
 
-common.uploadFileToQiniu = function (key, filePath) {
+export const uploadFileToQiniu = function (key, filePath) {
   return new Promise((resolve, reject) => {
     var accessKey = _.get(config, "qiniu.accessKey");
     var secretKey = _.get(config, "qiniu.secretKey");
@@ -318,7 +327,7 @@ common.uploadFileToQiniu = function (key, filePath) {
     bucketManager.stat(bucket, key, (respErr, respBody, respInfo) => {
       if (respErr) {
         log.debug('uploadFileToQiniu file stat:', respErr);
-        return reject(new AppError.AppError(respErr.message));
+        return reject(new AppError(respErr.message));
       }
       log.debug('uploadFileToQiniu file stat respBody:', respBody);
       log.debug('uploadFileToQiniu file stat respInfo:', respInfo);
@@ -326,17 +335,17 @@ common.uploadFileToQiniu = function (key, filePath) {
         resolve(respBody.hash);
       } else {
         try {
-          var uploadToken = common.getUploadTokenQiniu(mac, bucket, key);
-        } catch (e) {
-          return reject(new AppError.AppError(e.message));
+          var uploadToken = getUploadTokenQiniu(mac, bucket, key);
+        } catch (e: any) {
+          return reject(new AppError(e.message));
         }
         var formUploader = new qiniu.form_up.FormUploader(conf);
         var putExtra = new qiniu.form_up.PutExtra();
         formUploader.putFile(uploadToken, key, filePath, putExtra, (respErr, respBody, respInfo) => {
-          if(respErr) {
+          if (respErr) {
             log.error('uploadFileToQiniu putFile:', respErr);
             // 上传失败， 处理返回代码
-            return reject(new AppError.AppError(JSON.stringify(respErr)));
+            return reject(new AppError(JSON.stringify(respErr)));
           } else {
             log.debug('uploadFileToQiniu putFile respBody:', respBody);
             log.debug('uploadFileToQiniu putFile respInfo:', respInfo);
@@ -344,7 +353,7 @@ common.uploadFileToQiniu = function (key, filePath) {
             if (respInfo.statusCode == 200) {
               return resolve(respBody.hash);
             } else {
-              return reject(new AppError.AppError(respBody.error));
+              return reject(new AppError(respBody.error));
             }
           }
         });
@@ -353,7 +362,7 @@ common.uploadFileToQiniu = function (key, filePath) {
   });
 };
 
-common.uploadFileToS3 = function (key, filePath) {
+export const uploadFileToS3 = function (key, filePath) {
   var AWS = require('aws-sdk');
   console.log(">>>>>> uploadFileToS3 accessKeyId " + _.get(config, 's3.accessKeyId'));
   console.log(">>>>>> uploadFileToS3 secretAccessKey " + _.get(config, 's3.secretAccessKey'));
@@ -369,18 +378,18 @@ common.uploadFileToS3 = function (key, filePath) {
         region: _.get(config, 's3.region')
       });
       var s3 = new AWS.S3({
-        params: {Bucket: _.get(config, 's3.bucketName')}
+        params: { Bucket: _.get(config, 's3.bucketName') }
       });
       fs.readFile(filePath, (err, data) => {
         s3.upload({
           Key: key,
           Body: data,
-          ACL:'public-read',
+          ACL: 'public-read',
         }, (err, response) => {
           console.log(">>>>>> uploadFileToS3 response " + response);
-          if(err) {
+          if (err) {
             console.log(">>>>>> uploadFileToS3 err " + JSON.stringify(err));
-            reject(new AppError.AppError(JSON.stringify(err)));
+            reject(new AppError(JSON.stringify(err)));
           } else {
             resolve(response.ETag)
           }
@@ -390,10 +399,10 @@ common.uploadFileToS3 = function (key, filePath) {
   );
 };
 
-common.uploadFileToOSS = function (key, filePath) {
+export const uploadFileToOSS = function (key, filePath) {
   var ALY = require('aliyun-sdk');
   var ossStream = require('aliyun-oss-upload-stream')(new ALY.OSS({
-    accessKeyId:  _.get(config, 'oss.accessKeyId'),
+    accessKeyId: _.get(config, 'oss.accessKeyId'),
     secretAccessKey: _.get(config, 'oss.secretAccessKey'),
     endpoint: _.get(config, 'oss.endpoint'),
     apiVersion: '2013-10-15',
@@ -420,35 +429,35 @@ common.uploadFileToOSS = function (key, filePath) {
   });
 };
 
-common.uploadFileToTencentCloud = function (key, filePath) {
+export const uploadFileToTencentCloud = function (key, filePath) {
   return new Promise((resolve, reject) => {
     var COS = require('cos-nodejs-sdk-v5');
     var cosIn = new COS({
-        SecretId: _.get(config, 'tencentcloud.accessKeyId'),
-        SecretKey: _.get(config, 'tencentcloud.secretAccessKey')
+      SecretId: _.get(config, 'tencentcloud.accessKeyId'),
+      SecretKey: _.get(config, 'tencentcloud.secretAccessKey')
     });
     cosIn.sliceUploadFile({
-        Bucket: _.get(config, 'tencentcloud.bucketName'),
-        Region: _.get(config, 'tencentcloud.region'),
-        Key: key,
-        FilePath: filePath
+      Bucket: _.get(config, 'tencentcloud.bucketName'),
+      Region: _.get(config, 'tencentcloud.region'),
+      Key: key,
+      FilePath: filePath
     }, function (err, data) {
       log.debug("uploadFileToTencentCloud", err, data);
       if (err) {
-        reject(new AppError.AppError(JSON.stringify(err)));
-      }else {
+        reject(new AppError(JSON.stringify(err)));
+      } else {
         resolve(data.Key);
       }
     });
   });
 }
 
-common.diffCollectionsSync = function (collection1, collection2) {
-  var diffFiles = [];
-  var collection1Only = [];
+export const diffCollectionsSync = function (collection1, collection2) {
+  var diffFiles: any = [];
+  var collection1Only: any = [];
   var newCollection2 = Object.assign({}, collection2);
   if (collection1 instanceof Object) {
-    for(var key of Object.keys(collection1)) {
+    for (var key of Object.keys(collection1)) {
       if (_.isEmpty(newCollection2[key])) {
         collection1Only.push(key);
       } else {
@@ -459,5 +468,5 @@ common.diffCollectionsSync = function (collection1, collection2) {
       }
     }
   }
-  return {diff:diffFiles, collection1Only: collection1Only, collection2Only: Object.keys(newCollection2)}
+  return { diff: diffFiles, collection1Only: collection1Only, collection2Only: Object.keys(newCollection2) }
 };

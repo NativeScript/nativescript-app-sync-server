@@ -1,7 +1,7 @@
 import {
   DataTypes, Model, Optional
 } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface PackagesMetricsAttributes {
   id: number;
@@ -14,7 +14,7 @@ interface PackagesMetricsAttributes {
   updated_at?: Date;
 }
 
-interface PackagesMetricsCreationAttributes extends Optional<PackagesMetricsAttributes, "id"> { }
+interface PackagesMetricsCreationAttributes extends Optional<PackagesMetricsAttributes, "id" | "active" | "downloaded" | "failed" | "installed"> { }
 interface PackagesMetricsInstance extends Model<PackagesMetricsAttributes, PackagesMetricsCreationAttributes>,
   PackagesMetricsAttributes { }
 

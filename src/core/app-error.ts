@@ -1,7 +1,7 @@
 export class AppError extends Error {
   status: number;
   
-  constructor(msg: string, constr?: any) {
+  constructor(msg?: string, constr?: any) {
     super()
     if (msg) {
       msg = msg.toString();
@@ -14,7 +14,7 @@ export class AppError extends Error {
 }
 
 export class NotFoundError extends AppError {
-  constructor(msg, constr) {
+  constructor(msg?: string, constr?: any) {
     super(msg, constr)
     if (msg) {
       msg = msg.toString();
@@ -27,7 +27,7 @@ export class NotFoundError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(msg, constr) {
+  constructor(msg?: string, constr?: any) {
     super(msg, constr)
   
     this.message = msg || `401 Unauthorized`;

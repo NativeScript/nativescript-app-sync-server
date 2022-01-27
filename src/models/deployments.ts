@@ -3,7 +3,7 @@ import {
 } from "sequelize";
 import _ from 'lodash'
 import { AppError } from '../core/app-error'
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface DeploymentsAttributes {
   id: number;
@@ -17,7 +17,7 @@ interface DeploymentsAttributes {
   updated_at?: Date;
 }
 
-interface DeploymentsCreationAttributes extends Optional<DeploymentsAttributes, "id"> { }
+interface DeploymentsCreationAttributes extends Optional<DeploymentsAttributes, "id" | "description"> { }
 interface DeploymentsInstance extends Model<DeploymentsAttributes, DeploymentsCreationAttributes>,
   DeploymentsAttributes { }
 
@@ -41,22 +41,5 @@ const Deployments = sequelize.define<DeploymentsInstance>("Deployments", {
   underscored: true,
   paranoid: true
 });
-
-
-export const generateLabelId = function (deploymentId: number) {
-  return sequelize.transaction(function (t) {
-    return Deployments.findOne({ where: { id: deploymentId }, lock: t.LOCK.UPDATE, transaction: t }).then(function (data) {
-      if (!data) {
-        throw new AppError("does not find deployment");
-      }
-
-      data.label_id = data.label_id + 1;
-      return data.save({ transaction: t })
-        .then(function (data) {
-          return data.label_id;
-        });
-    });
-  });
-};
 
 export default Deployments

@@ -1,14 +1,14 @@
 import {
   DataTypes, Model, Optional
 } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface PackagesDiffAttributes {
   id: number;
   package_id: number;
   diff_against_package_hash: string;
   diff_blob_url: string;
-  diff_size: string;
+  diff_size: number;
   created_at?: Date;
   updated_at?: Date;
 }

@@ -1,6 +1,6 @@
 import * as models from '../../models'
 import _ from 'lodash'
-import security from '../../core/utils/security'
+import * as security from '../../core/utils/security'
 import { AppError } from '../app-error'
 import constName from '../constants'
 import Sequelize from 'sequelize'

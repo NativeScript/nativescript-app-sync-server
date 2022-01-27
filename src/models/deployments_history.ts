@@ -1,7 +1,7 @@
 import {
   Sequelize, DataTypes, Model, BuildOptions, Optional
 } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface DeploymentsHistoryAttributes {
   id: number;

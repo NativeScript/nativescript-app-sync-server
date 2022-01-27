@@ -1,7 +1,7 @@
 import {
   DataTypes, Model, Optional
 } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface DeploymentsVersionsAttributes {
   id: number;
@@ -16,7 +16,7 @@ interface DeploymentsVersionsAttributes {
 
 interface DeploymentsVersionsCreationAttributes extends Optional<DeploymentsVersionsAttributes, "id"> { }
 interface DeploymentsVersionsInstance extends Model<DeploymentsVersionsAttributes, DeploymentsVersionsCreationAttributes>,
-  DeploymentsVersionsAttributes { }
+  DeploymentsVersionsAttributes {  }
 
 const DeploymentsVersions = sequelize.define<DeploymentsVersionsInstance>("DeploymentsVersions", {
   id: {

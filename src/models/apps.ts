@@ -1,7 +1,7 @@
 import {
   DataTypes, Model, Optional
 } from "sequelize";
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface AppAttributes {
   id: number;

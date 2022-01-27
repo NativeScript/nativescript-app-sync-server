@@ -2,7 +2,7 @@ import {
   DataTypes, Model, Optional
 } from "sequelize";
 import _ from 'lodash'
-import { sequelize } from "./db";
+import { sequelize } from "../db";
 
 interface LogReportDownloadAttributes {
   id: number;
