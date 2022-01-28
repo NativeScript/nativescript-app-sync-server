@@ -23,16 +23,16 @@ export interface ICollaboratorInstance extends Model<ICollaboratorAttributes, IC
 
 const CollaboratorsModel = sequelize.define<ICollaboratorInstance>("Collaborators", {
   id: {
-    type: DataTypes.BIGINT(),
+    type: DataTypes.BIGINT({ length: 20 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  appid: DataTypes.INTEGER(),
-  uid: DataTypes.BIGINT(),
-  roles: DataTypes.STRING,
-  created_at: DataTypes.DATE,
-  updated_at: DataTypes.DATE,
+  appid: DataTypes.INTEGER({ length: 10 }),
+  uid: DataTypes.BIGINT({ length: 20 }),
+  roles: DataTypes.STRING(20),
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
 }, {
 
   tableName: 'collaborators',

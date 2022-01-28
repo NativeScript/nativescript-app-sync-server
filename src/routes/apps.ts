@@ -490,7 +490,7 @@ router.get('/:appName/collaborators',
         return collaborators.listCollaborators(col.appid);
       })
       .then((data) => {
-       const rs = _.reduce(data, (result, value: any, key) => {
+        const rs = _.reduce(data, (result, value: any, key) => {
           if (_.eq(key, req.users.email)) {
             value.isCurrentAccount = true;
           } else {
@@ -511,30 +511,31 @@ router.get('/:appName/collaborators',
   });
 
 router.post('/:appName/collaborators/:email',
-  middleware.checkToken, (req, res, next) => {
-    var appName = _.trim(req.params.appName);
-    var email = _.trim(req.params.email);
-    var uid = req.users.id;
+  middleware.checkToken, function (req, res, next) {
+    var appName = _.trim(req.params.appName)
+    var email = _.trim(req.params.email)
+    var uid = req.users.id
     if (!validator.isEmail(email)) {
-      return res.status(406).send("Invalid Email!");
+      return res.status(406).send("Invalid Email!")
     }
     accountManager.ownerCan(uid, appName)
       .then((col) => {
         return accountManager.findUserByEmail(email)
           .then((data) => {
-            return collaborators.addCollaborator(col.appid, data?.id);
-          });
+            return collaborators.addCollaborator(col.appid, data?.id)
+          })
       })
       .then((data) => {
-        res.send(data);
+        res.send(data)
       })
       .catch((e) => {
         if (e instanceof AppError) {
-          res.status(406).send(e.message);
+          res.status(406).send(e.message)
         } else {
-          next(e);
+          next(e)
         }
-      });
+      })
+    return
   });
 
 router.delete('/:appName/collaborators/:email',
@@ -566,6 +567,7 @@ router.delete('/:appName/collaborators/:email',
           next(e);
         }
       });
+    return
   });
 
 router.delete('/:appName',
@@ -701,6 +703,7 @@ router.post('/', middleware.checkToken, (req, res, next) => {
         next(e);
       }
     });
+  return
 });
 
 export default router;

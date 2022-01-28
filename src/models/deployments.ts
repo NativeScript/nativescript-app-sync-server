@@ -23,19 +23,19 @@ interface DeploymentsInstance extends Model<DeploymentsAttributes, DeploymentsCr
 
 const Deployments = sequelize.define<DeploymentsInstance>("Deployments", {
   id: {
-    type: DataTypes.INTEGER(),
+    type: DataTypes.INTEGER({ length: 10 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  appid: DataTypes.INTEGER(),
-  name: DataTypes.STRING,
-  description: DataTypes.STRING,
-  deployment_key: DataTypes.STRING,
-  last_deployment_version_id: DataTypes.INTEGER(),
-  label_id: DataTypes.INTEGER(),
-  created_at: DataTypes.DATE,
-  updated_at: DataTypes.DATE,
+  appid: DataTypes.INTEGER({ length: 10 }),
+  name: DataTypes.STRING(20),
+  description: DataTypes.STRING(500),
+  deployment_key: DataTypes.STRING(64),
+  last_deployment_version_id: DataTypes.INTEGER({ length: 10 }),
+  label_id: DataTypes.INTEGER({ length: 11 }),
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
 }, {
   tableName: 'deployments',
   underscored: true,

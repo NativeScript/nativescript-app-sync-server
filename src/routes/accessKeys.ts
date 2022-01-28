@@ -11,16 +11,22 @@ import moment from 'moment'
 const log = log4js.getLogger("cps:accessKey")
 const router = express.Router();
 
+declare global {
+  namespace Express {
+      interface Request {users: any}
+  }
+}
+
 router.get('/', middleware.checkToken, (req, res, next) => {
-  var uid = req.users.id;
-  accountManager.getAllAccessKeyByUid(uid)
-    .then((accessKeys) => {
-      res.send({ accessKeys: accessKeys });
-    })
-    .catch((e) => {
-      next(e);
-    });
-});
+    var uid = req.users.id
+    accountManager.getAllAccessKeyByUid(uid)
+      .then((accessKeys) => {
+        res.send({ accessKeys: accessKeys })
+      })
+      .catch((e) => {
+        next(e)
+      })
+  });
 
 router.post('/', middleware.checkToken, (req, res, next) => {
   var uid = req.users.id;

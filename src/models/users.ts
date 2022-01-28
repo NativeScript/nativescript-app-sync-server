@@ -20,18 +20,18 @@ interface UsersInstance extends Model<UsersAttributes, UsersCreationAttributes>,
 
 const UsersModel = sequelize.define<UsersInstance>("Users", {
   id: {
-    type: DataTypes.BIGINT(),
+    type: DataTypes.BIGINT({ length: 11 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  username: DataTypes.STRING,
-  password: DataTypes.STRING,
-  email: DataTypes.STRING,
-  identical: DataTypes.STRING,
-  ack_code: DataTypes.STRING,
-  created_at: DataTypes.DATE,
-  updated_at: DataTypes.DATE,
+  username: DataTypes.STRING(50),
+  password: DataTypes.STRING(255),
+  email: DataTypes.STRING(100),
+  identical: DataTypes.STRING(10),
+  ack_code: DataTypes.STRING(10),
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
 }, {
   tableName: 'users',
   underscored: true

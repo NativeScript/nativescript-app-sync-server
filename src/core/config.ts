@@ -1,6 +1,6 @@
 import os from 'os'
 
-const config = {
+export default {
   // Config for database, only support mysql.
   db: {
     username: process.env.RDS_USERNAME || "root",
@@ -48,8 +48,8 @@ const config = {
   // Config for local storage when storageType value is "local".
   local: {
     // Binary files storage dir, Do not use tmpdir and it's public download dir.
-    storageDir: process.env.STORAGE_DIR, //|| "/app/_storage", // TODO this gets wiped upon deploy.. so move to The Cloud™️
-    // storageDir: process.env.STORAGE_DIR || "./_storage",
+    //storageDir: process.env.STORAGE_DIR, //|| "/app/_storage", // TODO this gets wiped upon deploy.. so move to The Cloud™️
+    storageDir: process.env.STORAGE_DIR || "./_storage",
     // Binary files download host address which Code Push Server listen to. the files storage in storageDir.
     downloadUrl: process.env.LOCAL_DOWNLOAD_URL, //|| "https://appsync-server.nativescript.org/download",
     // public static download spacename.
@@ -125,5 +125,3 @@ const config = {
     }
   }
 }
-
-export default config

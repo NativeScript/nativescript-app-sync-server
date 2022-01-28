@@ -20,17 +20,17 @@ interface LogReportDeployInstance extends Model<LogReportDeployAttributes, LogRe
 
 const LogReportDeployModel = sequelize.define<LogReportDeployInstance>("LogReportDeploy", {
   id: {
-    type: DataTypes.BIGINT(),
+    type: DataTypes.BIGINT({ length: 20 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  status: DataTypes.INTEGER(),
-  package_id: DataTypes.INTEGER(),
-  client_unique_id: DataTypes.STRING,
-  previous_label: DataTypes.STRING,
-  previous_deployment_key: DataTypes.STRING,
-  created_at: DataTypes.DATE,
+  status: DataTypes.TINYINT({ length: 3 }),
+  package_id: DataTypes.INTEGER({ length: 10 }),
+  client_unique_id: DataTypes.STRING(100),
+  previous_label: DataTypes.STRING(20),
+  previous_deployment_key: DataTypes.STRING(64),
+  created_at: DataTypes.DATE(),
 }, {
   tableName: 'log_report_deploy',
   underscored: true,

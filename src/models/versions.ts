@@ -15,13 +15,13 @@ interface VersionsInstance extends Model<VersionsAttributes, VersionsCreationAtt
 
 const VersionsModel = sequelize.define<VersionsInstance>("Versions", {
   id: {
-    type: DataTypes.INTEGER(),
+    type: DataTypes.INTEGER({ length: 11 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  type: DataTypes.INTEGER,
-  version: DataTypes.STRING
+  type: DataTypes.TINYINT({ length: 3 }),
+  version: DataTypes.STRING(10)
 }, {
   tableName: 'versions',
   updatedAt: false,

@@ -16,14 +16,14 @@ interface DeploymentsHistoryInstance extends Model<DeploymentsHistoryAttributes,
 
 const DeploymentsHistoryModel = sequelize.define<DeploymentsHistoryInstance>("DeploymentsHistory", {
   id: {
-    type: DataTypes.INTEGER(),
+    type: DataTypes.INTEGER({ length: 11 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  deployment_id: DataTypes.INTEGER(),
-  package_id: DataTypes.INTEGER(),
-  created_at: DataTypes.DATE
+  deployment_id: DataTypes.INTEGER({ length: 11 }),
+  package_id: DataTypes.INTEGER({ length: 10 }),
+  created_at: DataTypes.DATE()
 }, {
   tableName: 'deployments_history',
   underscored: true,

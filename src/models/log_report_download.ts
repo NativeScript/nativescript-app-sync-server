@@ -17,14 +17,14 @@ interface LogReportDownloadInstance extends Model<LogReportDownloadAttributes, L
 
 const LogReportDownloadModel = sequelize.define<LogReportDownloadInstance>("LogReportDownload", {
   id: {
-    type: DataTypes.BIGINT(),
+    type: DataTypes.BIGINT({ length: 20 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  package_id: DataTypes.INTEGER(),
-  client_unique_id: DataTypes.STRING,
-  created_at: DataTypes.DATE,
+  package_id: DataTypes.INTEGER({ length: 11 }),
+  client_unique_id: DataTypes.STRING(100),
+  created_at: DataTypes.DATE(),
 }, {
   tableName: 'log_report_download',
   underscored: true,

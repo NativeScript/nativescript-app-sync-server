@@ -1,3 +1,10 @@
+CREATE DATABASE IF NOT EXISTS `codepush`;
+
+GRANT SELECT,UPDATE,INSERT ON `codepush`.* TO 'codepush'@'%' IDENTIFIED BY '123456' WITH GRANT OPTION;
+
+flush privileges;
+
+use `codepush`;
 CREATE TABLE IF NOT EXISTS `apps` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL DEFAULT '',

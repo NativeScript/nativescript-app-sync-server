@@ -1,3 +1,4 @@
+import "./aliases"
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import bodyParser from 'body-parser'
@@ -13,18 +14,22 @@ import users from './routes/users'
 import apps from './routes/apps'
 import { AppError, NotFoundError } from './core/app-error'
 import log4js from 'log4js'
+import path from 'path'
 import dotenv from 'dotenv'
 dotenv.config()
 
 log4js.configure(_.get(config, 'log4js', {
-  appenders: {console: { type: 'console'}},
-  categories : { default: { appenders: ['console'], level: 'info' }}
+  appenders: { console: { type: 'console' } },
+  categories: { default: { appenders: ['console'], level: 'info' } }
 }));
 
-var log = log4js.getLogger("cps:app");
-var app = express();
+const log = log4js.getLogger("cps:app");
+const app = express();
+
 app.use(helmet());
 app.disable('x-powered-by');
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'pug');
 
 app.use(log4js.connectLogger(log4js.getLogger("http"), { level: log4js.levels.INFO.levelStr, nolog: '\\.gif|\\.jpg|\\.js|\\.css$' }));
 
@@ -117,8 +122,8 @@ if (app.get('env') === 'development') {
     }
   });
 }
-
-app.listen(process.env.PORT || 5000, () => {
-  console.log('App is running')
+const PORT = process.env.PORT || 5000
+app.listen(PORT, () => {
+  console.log(`App is running http://localhost:${PORT}`)
 })
 

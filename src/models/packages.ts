@@ -22,6 +22,7 @@ interface PackagesAttributes {
   rollout: number,
   created_at?: Date;
   updated_at?: Date;
+  deleted_at?: Date;
 }
 
 interface PackagesCreationAttributes extends Optional<PackagesAttributes, "id"> { }
@@ -30,28 +31,29 @@ interface PackagesInstance extends Model<PackagesAttributes, PackagesCreationAtt
 
 const PackagesModel = sequelize.define<PackagesInstance>("Packages", {
   id: {
-    type: DataTypes.INTEGER(),
+    type: DataTypes.INTEGER({ length: 11 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  deployment_version_id: DataTypes.INTEGER(),
-  deployment_id: DataTypes.INTEGER(),
-  description: DataTypes.STRING,
-  package_hash: DataTypes.STRING,
-  blob_url: DataTypes.STRING,
-  size: DataTypes.INTEGER(),
-  manifest_blob_url: DataTypes.STRING,
-  release_method: DataTypes.STRING,
-  label: DataTypes.STRING,
-  original_label: DataTypes.STRING,
-  original_deployment: DataTypes.STRING,
-  released_by: DataTypes.STRING,
-  is_mandatory: DataTypes.INTEGER(),
-  is_disabled: DataTypes.INTEGER(),
-  rollout: DataTypes.INTEGER(),
-  created_at: DataTypes.DATE,
-  updated_at: DataTypes.DATE,
+  deployment_version_id: DataTypes.INTEGER({ length: 10 }),
+  deployment_id: DataTypes.INTEGER({ length: 10 }),
+  description: DataTypes.STRING(500),
+  package_hash: DataTypes.STRING(64),
+  blob_url: DataTypes.STRING(255),
+  size: DataTypes.INTEGER({ length: 11 }),
+  manifest_blob_url: DataTypes.STRING(255),
+  release_method: DataTypes.STRING(20),
+  label: DataTypes.STRING(20),
+  original_label: DataTypes.STRING(20),
+  original_deployment: DataTypes.STRING(20),
+  released_by: DataTypes.BIGINT({ length: 20 }),
+  is_mandatory: DataTypes.TINYINT({ length: 3 }),
+  is_disabled: DataTypes.TINYINT({ length: 3 }),
+  rollout: DataTypes.TINYINT({ length: 3 }),
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
+  deleted_at: DataTypes.DATE()
 }, {
   tableName: 'packages',
   underscored: true,

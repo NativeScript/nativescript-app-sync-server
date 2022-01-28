@@ -1,8 +1,7 @@
 {
     "compilerOptions": {
-        "baseUrl": "./",
+        "baseUrl": ".",
         "target": "es6",
-        "moduleResolution": "node",
         "module": "commonjs",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
@@ -17,9 +16,9 @@
         "sourceMap": true,
         "outDir": "dist",
         "allowJs": true,
-        "lib": [
-            "esnext",
-            "dom"
+        "typeRoots": [
+            "./src/types",
+            "./node_modules/@types",
         ],
         "paths": {
             "~/*": [
@@ -29,5 +28,8 @@
     },
     "include": [
         "src/**/*"
+    ],
+    "exclude": [
+        "./node_modules"
     ]
 }

@@ -19,17 +19,17 @@ interface PackagesDiffInstance extends Model<PackagesDiffAttributes, PackagesDif
 
 const PackagesDiffModel = sequelize.define<PackagesDiffInstance>("PackagesDiff", {
   id: {
-    type: DataTypes.INTEGER(),
+    type: DataTypes.INTEGER({ length: 11 }),
     allowNull: false,
     autoIncrement: true,
     primaryKey: true
   },
-  package_id: DataTypes.INTEGER(),
-  diff_against_package_hash: DataTypes.STRING,
-  diff_blob_url: DataTypes.STRING,
-  diff_size: DataTypes.INTEGER(),
-  created_at: DataTypes.DATE,
-  updated_at: DataTypes.DATE,
+  package_id: DataTypes.INTEGER({ length: 11 }),
+  diff_against_package_hash: DataTypes.STRING(64),
+  diff_blob_url: DataTypes.STRING(255),
+  diff_size: DataTypes.INTEGER({ length: 11 }),
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
 }, {
   tableName: 'packages_diff',
   underscored: true,
