@@ -30,8 +30,8 @@ const AppModel = sequelize.define<AppInstance>("Apps", {
   os: DataTypes.TINYINT({ length: 3 }),
   platform: DataTypes.TINYINT({ length: 3 }),
   is_use_diff_text: DataTypes.TINYINT({ length: 3 }),
-  created_at: DataTypes.DATE,
-  updated_at: DataTypes.DATE,
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
 }, {
   tableName: 'apps',
   underscored: true,

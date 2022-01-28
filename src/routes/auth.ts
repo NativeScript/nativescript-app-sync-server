@@ -28,12 +28,7 @@ router.get('/link', (req, res) => {
 router.get('/register', (req, res) => {
   var codePushWebUrl = _.get(config, 'common.codePushWebUrl');
   var isRedirect = false;
-  if (codePushWebUrl && validator.isURL(codePushWebUrl)) {
-    log.debug(`register redirect:${codePushWebUrl}`);
-    res.redirect(`${codePushWebUrl}/register`);
-  } else {
-    res.render('auth/login', { title: 'AppSync Server' });
-  }
+  res.render('auth/register', { title: 'AppSync Server' });
 });
 
 router.post('/logout', (req, res) => {

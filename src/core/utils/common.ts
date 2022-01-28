@@ -5,13 +5,11 @@ import extract from 'extract-zip'
 import config from '../config'
 import _ from 'lodash'
 import validator from 'validator'
-import qiniu from "qiniu"
 import { AppError } from '../app-error'
 import jschardet from "jschardet"
 import log4js from 'log4js'
 import path from 'path'
 const log = log4js.getLogger("cps:utils:common")
-
 
 export const slash = (path) => {
   const isExtendedLengthPath = /^\\\\\?\\/.test(path);
@@ -216,14 +214,6 @@ export const unzipFile = function (zipFile, outputPath) {
   });
 };
 
-export const getUploadTokenQiniu = function (mac, bucket, key) {
-  var options = {
-    scope: bucket + ":" + key
-  }
-  var putPolicy = new qiniu.rs.PutPolicy(options);
-  return putPolicy.uploadToken(mac);
-};
-
 export const uploadFileToStorage = function (key, filePath) {
   var storageType = _.get(config, 'export const storageType');
   console.log(">>>> storageType: " + storageType);
@@ -233,12 +223,6 @@ export const uploadFileToStorage = function (key, filePath) {
     return uploadFileToLocal(key, filePath);
   } else if (storageType === 's3') {
     return uploadFileToS3(key, filePath);
-  } else if (storageType === 'oss') {
-    return uploadFileToOSS(key, filePath);
-  } else if (storageType === 'qiniu') {
-    return uploadFileToQiniu(key, filePath);
-  } else if (storageType === 'tencentcloud') {
-    return uploadFileToTencentCloud(key, filePath);
   }
   throw new AppError(`${storageType} storageType does not support.`);
 };
@@ -315,53 +299,6 @@ export const getBlobDownloadUrl = function (blobUrl) {
   return `${downloadUrl}/${fileName}`
 };
 
-
-export const uploadFileToQiniu = function (key, filePath) {
-  return new Promise((resolve, reject) => {
-    var accessKey = _.get(config, "qiniu.accessKey");
-    var secretKey = _.get(config, "qiniu.secretKey");
-    var bucket = _.get(config, "qiniu.bucketName", "");
-    var mac = new qiniu.auth.digest.Mac(accessKey, secretKey);
-    var conf = new qiniu.conf.Config();
-    var bucketManager = new qiniu.rs.BucketManager(mac, conf);
-    bucketManager.stat(bucket, key, (respErr, respBody, respInfo) => {
-      if (respErr) {
-        log.debug('uploadFileToQiniu file stat:', respErr);
-        return reject(new AppError(respErr.message));
-      }
-      log.debug('uploadFileToQiniu file stat respBody:', respBody);
-      log.debug('uploadFileToQiniu file stat respInfo:', respInfo);
-      if (respInfo.statusCode == 200) {
-        resolve(respBody.hash);
-      } else {
-        try {
-          var uploadToken = getUploadTokenQiniu(mac, bucket, key);
-        } catch (e: any) {
-          return reject(new AppError(e.message));
-        }
-        var formUploader = new qiniu.form_up.FormUploader(conf);
-        var putExtra = new qiniu.form_up.PutExtra();
-        formUploader.putFile(uploadToken, key, filePath, putExtra, (respErr, respBody, respInfo) => {
-          if (respErr) {
-            log.error('uploadFileToQiniu putFile:', respErr);
-            // 上传失败， 处理返回代码
-            return reject(new AppError(JSON.stringify(respErr)));
-          } else {
-            log.debug('uploadFileToQiniu putFile respBody:', respBody);
-            log.debug('uploadFileToQiniu putFile respInfo:', respInfo);
-            // 上传成功， 处理返回值
-            if (respInfo.statusCode == 200) {
-              return resolve(respBody.hash);
-            } else {
-              return reject(new AppError(respBody.error));
-            }
-          }
-        });
-      }
-    });
-  });
-};
-
 export const uploadFileToS3 = function (key, filePath) {
   var AWS = require('aws-sdk');
   console.log(">>>>>> uploadFileToS3 accessKeyId " + _.get(config, 's3.accessKeyId'));
@@ -398,59 +335,6 @@ export const uploadFileToS3 = function (key, filePath) {
     })
   );
 };
-
-export const uploadFileToOSS = function (key, filePath) {
-  var ALY = require('aliyun-sdk');
-  var ossStream = require('aliyun-oss-upload-stream')(new ALY.OSS({
-    accessKeyId: _.get(config, 'oss.accessKeyId'),
-    secretAccessKey: _.get(config, 'oss.secretAccessKey'),
-    endpoint: _.get(config, 'oss.endpoint'),
-    apiVersion: '2013-10-15',
-  }));
-  if (!_.isEmpty(_.get(config, 'oss.prefix', ""))) {
-    key = `${_.get(config, 'oss.prefix')}/${key}`;
-  }
-  var upload = ossStream.upload({
-    Bucket: _.get(config, 'oss.bucketName'),
-    Key: key,
-  });
-
-  return new Promise((resolve, reject) => {
-    upload.on('error', (error) => {
-      log.debug("uploadFileToOSS", error);
-      reject(error);
-    });
-
-    upload.on('uploaded', (details) => {
-      log.debug("uploadFileToOSS", details);
-      resolve(details.ETag);
-    });
-    fs.createReadStream(filePath).pipe(upload);
-  });
-};
-
-export const uploadFileToTencentCloud = function (key, filePath) {
-  return new Promise((resolve, reject) => {
-    var COS = require('cos-nodejs-sdk-v5');
-    var cosIn = new COS({
-      SecretId: _.get(config, 'tencentcloud.accessKeyId'),
-      SecretKey: _.get(config, 'tencentcloud.secretAccessKey')
-    });
-    cosIn.sliceUploadFile({
-      Bucket: _.get(config, 'tencentcloud.bucketName'),
-      Region: _.get(config, 'tencentcloud.region'),
-      Key: key,
-      FilePath: filePath
-    }, function (err, data) {
-      log.debug("uploadFileToTencentCloud", err, data);
-      if (err) {
-        reject(new AppError(JSON.stringify(err)));
-      } else {
-        resolve(data.Key);
-      }
-    });
-  });
-}
 
 export const diffCollectionsSync = function (collection1, collection2) {
   var diffFiles: any = [];

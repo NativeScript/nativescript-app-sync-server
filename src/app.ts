@@ -28,9 +28,6 @@ const app = express();
 
 app.use(helmet());
 app.disable('x-powered-by');
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
-
 app.use(log4js.connectLogger(log4js.getLogger("http"), { level: log4js.levels.INFO.levelStr, nolog: '\\.gif|\\.jpg|\\.js|\\.css$' }));
 
 app.use(bodyParser.json());

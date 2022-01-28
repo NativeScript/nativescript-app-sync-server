@@ -4,20 +4,13 @@ export default {
   // Config for database, only support mysql.
   db: {
     username: process.env.RDS_USERNAME || "root",
-    password: process.env.RDS_PASSWORD || "root",
+    password: process.env.RDS_PASSWORD || "",
     database: process.env.DATA_BASE || "codepush",
-    host: process.env.RDS_HOST || "127.0.0.1",
+    host: process.env.RDS_HOST || "localhost",
     port: process.env.RDS_PORT || 3306,
     dialect: "mysql",
     logging: true,
     operatorsAliases: false,
-  },
-  // Config for qiniu (http://www.qiniu.com/) cloud storage when storageType value is "qiniu".
-  qiniu: {
-    accessKey: "",
-    secretKey: "",
-    bucketName: "",
-    downloadUrl: "" // Binary files download host address.
   },
   // Config for Amazon s3 (https://aws.amazon.com/cn/s3/) storage when storageType value is "s3".
   s3: {
@@ -27,23 +20,6 @@ export default {
     bucketName: process.env.BUCKET_NAME,
     region: process.env.REGION,
     downloadUrl: process.env.DOWNLOAD_URL, // binary files download host address.
-  },
-  // Config for Aliyun OSS (https://www.aliyun.com/product/oss) when storageType value is "oss".
-  oss: {
-    accessKeyId: "",
-    secretAccessKey: "",
-    endpoint: "",
-    bucketName: "",
-    prefix: "", // Key prefix in object key
-    downloadUrl: "", // binary files download host address.
-  },
-  // Config for tencentyun COS (https://cloud.tencent.com/product/cos) when storageType value is "oss".
-  tencentcloud: {
-    accessKeyId: "",
-    secretAccessKey: "",
-    bucketName: "",
-    region: "",
-    downloadUrl: "", // binary files download host address.
   },
   // Config for local storage when storageType value is "local".
   local: {
@@ -69,7 +45,7 @@ export default {
     tryLoginTimes: 3,
     // CodePush Web(https://github.com/lisong/code-push-web) login address.
     // codePushWebUrl: "http://127.0.0.1:3001",
-    codePushWebUrl: "https://appsync.nativescript.org",
+    codePushWebUrl: "http://localhost:5000",
     // create patch updates's number. default value is 3
     diffNums: 3,
     // data dir for caclulate diff files. it's optimization.
