@@ -3,14 +3,11 @@ import os from 'os'
 export default {
   // Config for database, only support mysql.
   db: {
-    username: process.env.RDS_USERNAME || "root",
-    password: process.env.RDS_PASSWORD || "",
-    database: process.env.DATA_BASE || "codepush",
-    host: process.env.RDS_HOST || "localhost",
-    port: process.env.RDS_PORT || 3306,
-    dialect: "mysql",
-    logging: true,
-    operatorsAliases: false,
+    username: process.env.DB_USERNAME || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "codepush",
+    host: process.env.DB_HOST || "db",
+    port: Number(process.env.DB_PORT || 3306),
   },
   // Config for Amazon s3 (https://aws.amazon.com/cn/s3/) storage when storageType value is "s3".
   s3: {
@@ -73,7 +70,7 @@ export default {
   // Config for redis (register module, tryLoginTimes module)
   redis: {
     default: {
-      url: process.env.REDIS_URL,
+      url: process.env.REDIS_URL || '',
       retry_strategy: function (options) {
         if (options.error.code === 'ECONNREFUSED') {
           // End reconnecting on a specific error and flush all commands with a individual error

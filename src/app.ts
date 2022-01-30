@@ -14,7 +14,6 @@ import users from './routes/users'
 import apps from './routes/apps'
 import { AppError, NotFoundError } from './core/app-error'
 import log4js from 'log4js'
-import path from 'path'
 import dotenv from 'dotenv'
 dotenv.config()
 
@@ -55,9 +54,8 @@ if (_.get(config, 'common.storageType') === 'local') {
     log.debug("config common.storageDir value: " + localStorageDir);
 
     if (!fs.existsSync(localStorageDir)) {
-      var e = new Error(`Please create dir ${localStorageDir}`);
-      log.error(e);
-      throw e;
+      fs.mkdirSync(localStorageDir)
+      console.log('Created local storage dir', localStorageDir)
     }
     try {
       log.debug('checking storageDir fs.W_OK | fs.R_OK');
@@ -85,25 +83,7 @@ app.use('/apps', apps);
 // will print stacktrace
 if (app.get('env') === 'development') {
   app.use(function (req, res, next) {
-    var err = new NotFoundError();
-    res.status(err.status || 404);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-    log.error(err);
-  });
-  app.use(function (err, req, res, next) {
-    res.status(err.status || 500);
-    res.render('error', {
-      message: err.message,
-      error: err
-    });
-    log.error(err);
-  });
-} else {
-  app.use(function (req, res, next) {
-    var e = new NotFoundError();
+    var e = new NotFoundError("404: Please use a valid route");
     res.status(404).send(e.message);
     log.debug(e);
   });

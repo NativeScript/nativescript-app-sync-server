@@ -3,8 +3,5 @@ import config from '../config'
 import * as redis from 'redis'
 import _ from 'lodash'
 
-export const getRedisClient = function (name) {
-  return redis.createClient(_.get(config, `redis.${name}`));
-};
-
-export const client = getRedisClient('default')
+export const client = redis.createClient(_.get(config, `redis.default`))
+client.on('error', (err) => console.log('Redis Client Error', err));

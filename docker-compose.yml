@@ -11,14 +11,38 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: "On"
     networks:
       - dbnet
+      
   redis:
-    image: redis:4.0.11-alpine
-    volumes:
-      - data-redis:/data
+    image: redis:6.2.5-alpine
+    environment:
+      REDIS_URL: redis://cache:6379
+      ALLOW_EMPTY_PASSWORD: 1
     ports:
       - "6379:6379"
     networks:
       - redisnet
+
+  server:
+      build:
+        target: dev
+      command: ./node_modules/.bin/tsnd --rs --poll --respawn src/app.ts
+      volumes:
+        - ./src:/usr/src
+        - ./package.json:/usr/package.json
+        - ./tsconfig.json:/usr/tsconfig.json
+      ports:
+        - "5000:5000"
+      environment:
+        DB_HOST: "db"
+        REDIS_URL: "redis://cache:6379"
+      depends_on:
+        - redis
+        - db
+      networks:
+        - servernet
+        - dbnet
+        - redisnet
+
 
 networks:
   servernet:

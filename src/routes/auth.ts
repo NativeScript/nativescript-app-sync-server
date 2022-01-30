@@ -7,30 +7,6 @@ import log4js from 'log4js'
 const router = express.Router();
 const log = log4js.getLogger("cps:auth");
 
-router.get('/password', (req, res) => {
-  res.render('auth/password', { title: 'AppSync Server' });
-});
-
-router.get('/login', (req, res) => {
-  var codePushWebUrl = _.get(config, 'common.codePushWebUrl');
-  if (codePushWebUrl && validator.isURL(codePushWebUrl)) {
-    log.debug(`login redirect:${codePushWebUrl}`);
-    res.redirect(`${codePushWebUrl}/login`);
-  } else {
-    res.render('auth/login', { title: 'AppSync Server' });
-  }
-});
-
-router.get('/link', (req, res) => {
-  res.redirect(`/auth/login`);
-});
-
-router.get('/register', (req, res) => {
-  var codePushWebUrl = _.get(config, 'common.codePushWebUrl');
-  var isRedirect = false;
-  res.render('auth/register', { title: 'AppSync Server' });
-});
-
 router.post('/logout', (req, res) => {
   res.send("ok");
 });

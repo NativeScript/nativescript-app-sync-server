@@ -12,49 +12,6 @@ import fs from 'fs'
 const log = log4js.getLogger("cps:index");
 const router = express.Router();
 
-router.get('/', (req, res, next) => {
-  res.render('index', { title: 'AppSync Server' });
-});
-
-router.get('/README.md', (req, res, next) => {
-
-  const readFile = Promise.promisify(fs.readFile);
-  const README = path.join(__dirname, '../README.md');
-  readFile(README, { encoding: 'utf8' })
-    .then(source => {
-      var md = new MarkdownIt();
-      res.send(md.render(source));
-    })
-    .catch(e => {
-      if (e instanceof AppError) {
-        res.send(e.message);
-      } else {
-        next(e);
-      }
-    });
-});
-
-router.get('/WEB_USAGE.md', (req, res, next) => {
-const readFile = Promise.promisify(fs.readFile);
-const README = path.join(__dirname, '../WEB_USAGE.md');
-readFile(README, { encoding: 'utf8' })
-  .then(source => {
-    var md = new MarkdownIt();
-    res.send(md.render(source));
-  })
-  .catch(e => {
-    if (e instanceof AppError) {
-      res.send(e.message);
-    } else {
-      next(e);
-    }
-  });
-});
-
-router.get('/tokens', (req, res) => {
-  res.render('tokens', { title: 'Get token' });
-});
-
 router.get('/updateCheck', (req, res, next) => {
   var deploymentKey = _.get(req, "query.deploymentKey");
   var appVersion = _.get(req, "query.appVersion");
