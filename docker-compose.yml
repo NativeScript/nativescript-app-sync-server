@@ -15,7 +15,7 @@ services:
   redis:
     image: redis:6.2.5-alpine
     environment:
-      REDIS_URL: redis://cache:6379
+      REDIS_URL: redis://redis:6379
       ALLOW_EMPTY_PASSWORD: 1
     ports:
       - "6379:6379"
@@ -34,7 +34,7 @@ services:
         - "5000:5000"
       environment:
         DB_HOST: "db"
-        REDIS_URL: "redis://cache:6379"
+        REDIS_URL: "redis://redis:6379"
       depends_on:
         - redis
         - db

@@ -1,7 +1,14 @@
 
 import config from '../config'
-import * as redis from 'redis'
-import _ from 'lodash'
+import { createClient } from 'redis'
+import _ from 'lodash/fp'
 
-export const client = redis.createClient(_.get(config, `redis.default`))
-client.on('error', (err) => console.log('Redis Client Error', err));
+export const getRedisClient = async () => {
+  const client = createClient(_.get(`redis`, config))
+  client.on('error', (err) => console.log('Redis Client Error', err));
+  client.on('connect', () => console.log('Redis connected!'));
+
+  await client.connect()
+
+  return client
+}

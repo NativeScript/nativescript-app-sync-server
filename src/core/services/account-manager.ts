@@ -2,7 +2,7 @@ import * as models from '../../models'
 import _ from 'lodash'
 import validator from 'validator'
 import * as security from '../utils/security'
-import { client } from '../utils/redis'
+import { getRedisClient } from '../utils/redis'
 import moment from 'moment'
 import * as emailManager from './email-manager'
 import * as config from '../config'
@@ -111,9 +111,10 @@ export const login = function (account, password) {
       }
       return users;
     })
-    .then((users) => {
+    .then(async (users) => {
       if (tryLoginTimes > 0) {
         var loginKey = `${LOGIN_LIMIT_PRE}${users?.id}`;
+        const client = await getRedisClient()
         return client.get(loginKey)
           .then((loginErrorTimes) => {
             if (Number(loginErrorTimes) > tryLoginTimes) {
@@ -126,10 +127,11 @@ export const login = function (account, password) {
         return users;
       }
     })
-    .then((users) => {
+    .then(async (users) => {
       if (!security.passwordVerifySync(password, users?.password)) {
         if (tryLoginTimes > 0) {
           var loginKey = `${LOGIN_LIMIT_PRE}${users?.id}`;
+          const client = await getRedisClient()
           client.exists(loginKey).then((isExists: any) => {
             if (!isExists) {
               var expires = Number(moment().endOf('day').format('X')) - Number(moment().format('X'));
@@ -163,8 +165,9 @@ export const sendRegisterCode = function (email) {
         throw new AppError(`"${email}" already registered`);
       }
     })
-    .then(() => {
+    .then(async () => {
       var token = security.randToken(40);
+      const client = await getRedisClient()
       return client.setEx(`${REGISTER_CODE}${security.md5(email)}`, EXPIRED, token)
         .then(() => {
           return token;
@@ -184,8 +187,9 @@ export const checkRegisterCode = function (email, token) {
         throw new AppError(`"${email}" is already registered`);
       }
     })
-    .then(() => {
+    .then(async () => {
       var registerKey = `${REGISTER_CODE}${security.md5(email)}`;
+      const client = await getRedisClient()
       return client.get(registerKey)
         .then((storageToken) => {
           if (_.isEmpty(storageToken)) {

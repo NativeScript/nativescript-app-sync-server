@@ -5,11 +5,12 @@ import * as models from '../models'
 import moment from 'moment'
 import { AppError, UnauthorizedError } from './app-error'
 import { Op } from 'sequelize'
-import * as config from './config'
+import config from './config'
 import jwt from 'jsonwebtoken'
 
 const checkAuthToken = function (authToken) {
   const objToken = security.parseToken(authToken);
+  console.log('🚀 ~ file: middleware.ts ~ line 13 ~ checkAuthToken ~ objToken', objToken)
   return models.Users.findOne({
     where: { identical: objToken.identical }
   })

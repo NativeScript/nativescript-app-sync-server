@@ -2,15 +2,14 @@ import * as models from '../../models'
 import _ from 'lodash'
 import * as common from '../utils/common'
 import constConfig from '../constants';
-import * as redis from '../utils/redis'
+import { getRedisClient } from '../utils/redis'
 import { AppError } from '../app-error'
 import * as config from '../config'
 import log4js from 'log4js'
 import Sequelize from 'sequelize'
-import Promise from 'bluebird'
+import BPromise from 'bluebird'
 
 const log = log4js.getLogger("cps:ClientManager")
-
 
 const UPDATE_CHECK = "UPDATE_CHECK";
 const CHOSEN_MAN = "CHOSEN_MAN";
@@ -20,29 +19,32 @@ export const getUpdateCheckCacheKey = function (deploymentKey, appVersion, label
   return [UPDATE_CHECK, deploymentKey, appVersion, label, packageHash].join(':');
 }
 
-export const clearUpdateCheckCache = function (deploymentKey, appVersion, label, packageHash) {
+export const clearUpdateCheckCache = async function (deploymentKey, appVersion, label, packageHash) {
   log.debug('clear cache Deployments key:', deploymentKey);
   let redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
-  return redis.client.keys(redisCacheKey)
+  const client = await getRedisClient()
+
+  return client.keys(redisCacheKey)
     .then((data) => {
       if (_.isArray(data)) {
-        return Promise.map(data, (key) => {
-          return redis.client.del(key);
+        return BPromise.map(data, (key) => {
+          return client.del(key);
         });
       }
       return null;
     })
-    .finally(() => redis.client.quit());
+    .finally(() => client.quit());
 }
 
-export const updateCheckFromCache = function (deploymentKey, appVersion, label, packageHash, clientUniqueId) {
+export const updateCheckFromCache = async function (deploymentKey, appVersion, label, packageHash, clientUniqueId) {
   var updateCheckCache = _.get(config, 'common.updateCheckCache', false);
   if (updateCheckCache === false) {
     return updateCheck(deploymentKey, appVersion, label, packageHash);
   }
   let redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
+  const client = await getRedisClient()
 
-  return redis.client.get(redisCacheKey)
+  return client.get(redisCacheKey)
     .then((data) => {
       if (data) {
         try {
@@ -57,13 +59,13 @@ export const updateCheckFromCache = function (deploymentKey, appVersion, label, 
           try {
             log.debug('updateCheckFromCache read from db');
             var strRs = JSON.stringify(rs);
-            redis.client.setEx(redisCacheKey, EXPIRED, strRs);
+            client.setEx(redisCacheKey, EXPIRED, strRs);
           } catch (e) {
           }
           return rs;
         });
     })
-    .finally(() => redis.client.quit());
+    .finally(() => client.quit());
 }
 
 export const getChosenManCacheKey = function (packageId, rollout, clientUniqueId) {
@@ -73,21 +75,21 @@ export const getChosenManCacheKey = function (packageId, rollout, clientUniqueId
 export const random = function (rollout) {
   var r = Math.ceil(Math.random() * 10000);
   if (r < rollout * 100) {
-    return Promise.resolve(true);
+    return BPromise.resolve(true);
   } else {
-    return Promise.resolve(false);
+    return BPromise.resolve(false);
   }
 }
 
 export const chosenMan = function (packageId, rollout, clientUniqueId) {
   if (rollout >= 100) {
-    return Promise.resolve(true);
+    return BPromise.resolve(true);
   }
   var rolloutClientUniqueIdCache = _.get(config, 'common.rolloutClientUniqueIdCache', false);
   if (rolloutClientUniqueIdCache === false) {
     return random(rollout);
   } else {
-    var client = redis.client
+    var client = client
     var redisCacheKey = getChosenManCacheKey(packageId, rollout, clientUniqueId);
     return client.get(redisCacheKey)
       .then((data) => {
@@ -127,7 +129,7 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
   };
 
   if (_.isEmpty(deploymentKey) || _.isEmpty(appVersion)) {
-    return Promise.reject(new AppError("please input deploymentKey and appVersion"))
+    return BPromise.reject(new AppError("please input deploymentKey and appVersion"))
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
@@ -209,7 +211,7 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
 
 export const getPackagesInfo = function (deploymentKey, label) {
   if (_.isEmpty(deploymentKey) || _.isEmpty(label)) {
-    return Promise.reject(new AppError("please input deploymentKey and label"))
+    return BPromise.reject(new AppError("please input deploymentKey and label"))
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
@@ -229,7 +231,7 @@ export const getPackagesInfo = function (deploymentKey, label) {
 export const reportStatusDownload = function (deploymentKey, label, clientUniqueId) {
   return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
-      return Promise.all([
+      return BPromise.all([
         models.PackagesMetrics.findOne({ where: { package_id: packages.id } })
           .then((metrics) => {
             if (metrics) {
@@ -259,7 +261,7 @@ export const reportStatusDeploy = function (deploymentKey, label, clientUniqueId
       var previous_deployment_key = _.get(others, 'previousDeploymentKey');
       var previous_label = _.get(others, 'previousLabelOrAppVersion');
       if (status > 0) {
-        return Promise.all([
+        return BPromise.all([
           models.LogReportDeploy.create({
             package_id: packageId,
             client_unique_id: clientUniqueId,
