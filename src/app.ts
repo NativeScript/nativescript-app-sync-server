@@ -12,7 +12,6 @@ import accessKeys from './routes/accessKeys'
 import account from './routes/account'
 import users from './routes/users'
 import apps from './routes/apps'
-import { AppError, NotFoundError } from './core/app-error'
 import log4js from 'log4js'
 import dotenv from 'dotenv'
 dotenv.config()
@@ -35,7 +34,6 @@ app.use(cookieParser());
 
 //use nginx in production
 //if (app.get('env') === 'development') {
-log.debug("set Access-Control Header");
 app.all('*', function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-NativeScript-AppSync-Plugin-Version, X-NativeScript-AppSync-Plugin-Name, X-NativeScript-AppSync-SDK-Version");
@@ -79,26 +77,6 @@ app.use('/account', account);
 app.use('/users', users);
 app.use('/apps', apps);
 
-// development error handler
-// will print stacktrace
-if (app.get('env') === 'development') {
-  app.use(function (req, res, next) {
-    var e = new NotFoundError("404: Please use a valid route");
-    res.status(404).send(e.message);
-    log.debug(e);
-  });
-  // production error handler
-  // no stacktraces leaked to user
-  app.use(function (err, req, res, next) {
-    if (err instanceof AppError) {
-      res.send(err.message);
-      log.debug(err);
-    } else {
-      res.status(err.status || 500).send(err.message);
-      log.error(err);
-    }
-  });
-}
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`App is running http://localhost:${PORT}`)

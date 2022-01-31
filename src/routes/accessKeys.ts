@@ -21,7 +21,7 @@ router.get('/', middleware.checkToken, (req, res, next) => {
     var uid = req.users.id
     accountManager.getAllAccessKeyByUid(uid)
       .then((accessKeys) => {
-        res.send({ accessKeys: accessKeys })
+        res.send({ accessKeys })
       })
       .catch((e) => {
         next(e)
@@ -49,6 +49,7 @@ router.post('/', middleware.checkToken, (req, res, next) => {
     .then((newToken) => {
       var info = {
         name: newToken.tokens,
+        token: newToken.tokens,
         createdTime: parseInt(moment(newToken.created_at).format('x')),
         createdBy: newToken.created_by,
         expires: parseInt(moment(newToken.expires_at).format('x')),
@@ -71,9 +72,9 @@ router.post('/', middleware.checkToken, (req, res, next) => {
 router.delete('/:name', middleware.checkToken, (req, res, next) => {
   var name = _.trim(decodeURI(req.params.name));
   var uid = req.users.id;
-  return models.UserTokens.destroy({ where: { name: name, uid: uid } })
+  return models.UserTokens.destroy({ where: { name, uid } })
     .then((rowNum) => {
-      log.debug('delete acceesKey:', name);
+      log.debug('delete accessKey:', name);
       res.send({ friendlyName: name });
     })
     .catch((e) => {

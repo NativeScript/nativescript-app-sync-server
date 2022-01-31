@@ -10,7 +10,6 @@ import jwt from 'jsonwebtoken'
 
 const checkAuthToken = function (authToken) {
   const objToken = security.parseToken(authToken);
-  console.log('🚀 ~ file: middleware.ts ~ line 13 ~ checkAuthToken ~ objToken', objToken)
   return models.Users.findOne({
     where: { identical: objToken.identical }
   })
