@@ -12,6 +12,7 @@ import { AppError } from '../core/app-error'
 import * as common from '../core/utils/common'
 import config from '../core/config'
 import log4js from 'log4js'
+import constName from '../core/constants'
 
 const REGEX = /^(\w+)(-android|-ios)$/;
 const REGEX_ANDROID = /^(\w+)(-android)$/;
@@ -653,7 +654,7 @@ router.post('/:appName/transfer/:email',
 
 router.post('/', middleware.checkToken, (req, res, next) => {
   log.debug("addApp params:", req.body);
-  var constName = require('../core/constants');
+
   var appName = req.body.name;
   if (_.isEmpty(appName)) {
     return res.status(406).send("Please input name!");
