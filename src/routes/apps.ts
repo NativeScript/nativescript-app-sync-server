@@ -1,5 +1,5 @@
 import express from 'express'
-import Promise from 'bluebird'
+import bluebird from 'bluebird'
 import _ from 'lodash'
 import validator from 'validator'
 import * as accountManager from '../core/services/account-manager'
@@ -34,8 +34,8 @@ router.get('/', (req, res, next) => {
 
 router.get('/:appName/deployments',
   (req, res, next) => {
-    var uid = req.users.id;
-    var appName = _.trim(req.params.appName);
+    const uid = req.users.id;
+    const appName = _.trim(req.params.appName);
 
     accountManager.collaboratorCan(uid, appName)
       .then((col) => {
@@ -118,7 +118,7 @@ router.get('/:appName/deployments/:deploymentName/metrics',
         return deployments.getAllPackageIdsByDeploymentsId(deploymentInfo?.id);
       })
       .then((packagesInfos) => {
-        return Promise.reduce(packagesInfos, (result, v) => {
+        return bluebird.Promise.reduce(packagesInfos, (result, v) => {
           return packageManager.getMetricsbyPackageId(v.get('id'))
             .then((metrics) => {
               if (metrics) {
@@ -249,177 +249,142 @@ router.delete('/:appName/deployments/:deploymentName',
   });
 
 router.post('/:appName/deployments/:deploymentName/release',
-  (req, res, next) => {
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    var uid = req.users.id;
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        log.debug(col);
-        return deployments.findDeloymentByName(deploymentName, col.appid)
-          .then((deploymentInfo) => {
-            if (_.isEmpty(deploymentInfo)) {
-              log.debug(`does not find the deployment`);
-              throw new AppError("does not find the deployment");
-            }
-            return packageManager.parseReqFile(req)
-              .then((data) => {
-                if (data.package.type != "application/zip") {
-                  log.debug(`upload file type is invlidate`, data.package);
-                  throw new AppError("upload file type is invalidate");
-                }
-                log.debug('packageInfo:', data.packageInfo);
-                return packageManager.releasePackage(deploymentInfo?.appid, deploymentInfo?.id, data.packageInfo, data.package.path, uid)
-                  .finally(() => {
-                    common.deleteFolderSync(data.package.path);
-                  });
-              })
-              .then((packages) => {
-                if (packages) {
-                  Promise.delay(1000)
-                    .then(() => {
-                      packageManager.createDiffPackagesByLastNums(deploymentInfo?.appid, packages, _.get(config, 'common.diffNums', 1))
-                        .catch((e) => {
-                          log.error(e);
-                        });
-                    });
-                }
-                //clear cache if exists.
-                if (_.get(config, 'common.updateCheckCache', false) !== false) {
-                  Promise.delay(2500)
-                    .then(() => {
-                      clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
-                    });
-                }
-                return null;
-              });
-          });
-      })
-      .then(() => {
-        res.send('{"msg": "succeed"}');
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
+  async (req, res, next) => {
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+    const uid = req.users.id;
+    const col = await accountManager.collaboratorCan(uid, appName).catch((e) => {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    })
+
+    log.debug(col);
+    const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col?.appid)
+    if (_.isEmpty(deploymentInfo)) {
+      log.debug(`does not find the deployment`);
+      throw new AppError("does not find the deployment");
+    }
+    const data = await packageManager.parseReqFile(req)
+    if (data.package.mimetype != "application/zip") {
+      log.debug(`upload file type is invlidate`, data.package);
+      throw new AppError("upload file type is invalidate");
+    }
+    log.debug('packageInfo:', data.packageInfo);
+    const packages = await packageManager.releasePackage(Number(deploymentInfo?.appid), Number(deploymentInfo?.id), data.packageInfo, data.package.filepath, uid)
+      .finally(() => {
+        common.deleteFolderSync(data.package.filepath);
       });
+    if (packages) {
+      await bluebird.Promise.delay(1000)
+        .then(() => {
+          packageManager.createDiffPackagesByLastNums(deploymentInfo?.appid, packages, _.get(config, 'common.diffNums', 1))
+            .catch((e) => {
+              log.error(e);
+            });
+        });
+    }
+    //clear cache if exists.
+    if (_.get(config, 'common.updateCheckCache', false) !== false) {
+      await bluebird.Promise.delay(2500)
+        .then(() => {
+          clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
+        });
+    }
+
+    res.send('{"msg": "succeed"}');
   });
 
 router.patch('/:appName/deployments/:deploymentName/release',
-  (req, res, next) => {
+  async (req, res, next) => {
     log.debug('req.body', req.body);
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    var uid = req.users.id;
-    var label = _.get(req, 'body.packageInfo.label');
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        return Promise(deployments.findDeloymentByName(deploymentName, col.appid))
-          .then((deploymentInfo) => {
-            if (_.isEmpty(deploymentInfo)) {
-              throw new AppError("does not find the deployment");
-            }
-            if (label) {
-              return packageManager.findPackageInfoByDeploymentIdAndLabel(deploymentInfo?.id, label)
-                .then((data) => {
-                  return [deploymentInfo, data];
-                });
-            } else {
-              var deploymentVersionId = deploymentInfo?.last_deployment_version_id;
-              return packageManager.findLatestPackageInfoByDeployVersion(deploymentVersionId)
-                .then((data) => {
-                  return [deploymentInfo, data];
-                });
-            }
-          })
-          .spread((deploymentInfo, packageInfo) => {
-            if (!packageInfo) {
-              throw new AppError("does not find the packageInfo");
-            }
-            return packageManager.modifyReleasePackage(packageInfo.id, _.get(req, 'body.packageInfo'))
-              .then(() => {
-                //clear cache if exists.
-                if (_.get(config, 'common.updateCheckCache', false) !== false) {
-                  Promise.delay(2500)
-                    .then(() => {
-                      clientManager.clearUpdateCheckCache(deploymentInfo.deployment_key, '*', '*', '*');
-                    });
-                }
-              });
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+    const uid = req.users.id;
+    const label = _.get(req, 'body.packageInfo.label');
+
+    try {
+      const col = await accountManager.collaboratorCan(uid, appName)
+
+      const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
+      if (_.isEmpty(deploymentInfo)) {
+        throw new AppError("does not find the deployment");
+      }
+
+      const packageInfo = label ? await packageManager.findPackageInfoByDeploymentIdAndLabel(deploymentInfo?.id, label) : await packageManager.findLatestPackageInfoByDeployVersion(deploymentInfo?.last_deployment_version_id)
+
+      if (!packageInfo) {
+        throw new AppError("does not find the packageInfo");
+      }
+      await packageManager.modifyReleasePackage(packageInfo?.id, _.get(req, 'body.packageInfo'))
+      //clear cache if exists.
+      if (_.get(config, 'common.updateCheckCache', false) !== false) {
+        await bluebird.Promise.delay(2500)
+          .then(() => {
+            clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
           });
-      }).then((data) => {
-        res.send("");
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+      }
+      res.send("");
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(406).send(error.message);
+      } else {
+        next(error);
+      }
+    }
   });
 
 
 router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeploymentName',
-  (req, res, next) => {
+  async (req, res, next) => {
     log.debug('req.body:', req.body);
-    var appName = _.trim(req.params.appName);
-    var sourceDeploymentName = _.trim(req.params.sourceDeploymentName);
-    var destDeploymentName = _.trim(req.params.destDeploymentName);
-    var uid = req.users.id;
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        var appId = col.appid;
-        return Promise.all([
-          deployments.findDeloymentByName(sourceDeploymentName, appId),
-          deployments.findDeloymentByName(destDeploymentName, appId)
-        ])
-          .spread((sourceDeploymentInfo, destDeploymentInfo) => {
-            if (!sourceDeploymentInfo) {
-              throw new AppError(`${sourceDeploymentName}  does not exist.`);
-            }
-            if (!destDeploymentInfo) {
-              throw new AppError(`${destDeploymentName}  does not exist.`);
-            }
-            return [sourceDeploymentInfo, destDeploymentInfo];
-          })
-          .spread((sourceDeploymentInfo, destDeploymentInfo) => {
-            var params = _.get(req.body, 'packageInfo', {});
-            _.set(params, 'promoteUid', uid);
-            return [packageManager.promotePackage(sourceDeploymentInfo, destDeploymentInfo, params), destDeploymentInfo];
-          })
-          .spread((packages, destDeploymentInfo) => {
-            if (packages) {
-              Promise.delay(1000)
-                .then(() => {
-                  packageManager.createDiffPackagesByLastNums(destDeploymentInfo.appid, packages, _.get(config, 'common.diffNums', 1))
-                    .catch((e) => {
-                      log.error(e);
-                    });
-                });
-            }
-            //clear cache if exists.
-            if (_.get(config, 'common.updateCheckCache', false) !== false) {
-              Promise.delay(2500)
-                .then(() => {
-                  clientManager.clearUpdateCheckCache(destDeploymentInfo.deployment_key, '*', '*', '*');
-                });
-            }
-            return packages;
-          })
-      })
-      .then((packages) => {
-        res.send({ package: packages });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+    const appName = _.trim(req.params.appName);
+    const sourceDeploymentName = _.trim(req.params.sourceDeploymentName);
+    const destDeploymentName = _.trim(req.params.destDeploymentName);
+    const uid = req.users.id;
+
+    try {
+      const col = await accountManager.collaboratorCan(uid, appName)
+      const appId = col.appid;
+      const [sourceDeploymentInfo, destDeploymentInfo] = await Promise.all([
+        deployments.findDeloymentByName(sourceDeploymentName, appId),
+        deployments.findDeloymentByName(destDeploymentName, appId)
+      ])
+      if (!sourceDeploymentInfo) {
+        throw new AppError(`${sourceDeploymentName}  does not exist.`);
+      }
+      if (!destDeploymentInfo) {
+        throw new AppError(`${destDeploymentName}  does not exist.`);
+      }
+      const params = { ...req.body.packageInfo, promoteUid: uid }
+      const packages = await packageManager.promotePackage(sourceDeploymentInfo, destDeploymentInfo, params)
+      if (packages) {
+        await bluebird.Promise.delay(1000)
+          .then(() => {
+            packageManager.createDiffPackagesByLastNums(destDeploymentInfo.appid, packages, _.get(config, 'common.diffNums', 1))
+              .catch((e) => {
+                log.error(e);
+              });
+          });
+      }
+      //clear cache if exists.
+      if (_.get(config, 'common.updateCheckCache', false) !== false) {
+        bluebird.Promise.delay(2500)
+          .then(() => {
+            clientManager.clearUpdateCheckCache(destDeploymentInfo.deployment_key, '*', '*', '*');
+          });
+      }
+
+      res.send({ package: packages });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(406).send(error.message);
+      } else {
+        next(error);
+      }
+    }
   });
 
 var rollbackCb = function (req, res, next) {
@@ -435,7 +400,7 @@ var rollbackCb = function (req, res, next) {
       return packageManager.rollbackPackage(dep?.last_deployment_version_id, targetLabel, uid)
         .then((packageInfo) => {
           if (packageInfo) {
-            Promise.delay(1000)
+            bluebird.Promise.delay(1000)
               .then(() => {
                 packageManager.createDiffPackagesByLastNums(dep?.appid, packageInfo, 1)
                   .catch((e) => {
@@ -445,7 +410,7 @@ var rollbackCb = function (req, res, next) {
           }
           //clear cache if exists.
           if (_.get(config, 'common.updateCheckCache', false) !== false) {
-            Promise.delay(2500)
+            bluebird.Promise.delay(2500)
               .then(() => {
                 clientManager.clearUpdateCheckCache(dep?.deployment_key, '*', '*', '*');
               });

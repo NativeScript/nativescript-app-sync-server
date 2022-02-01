@@ -1,7 +1,7 @@
 import * as models from '../../models'
 import * as security from '../../core/utils/security'
 import * as common from '../../core/utils/common'
-import * as Promise from 'bluebird'
+import bluebird from 'bluebird'
 import _ from 'lodash'
 import moment from 'moment'
 import { AppError } from '../app-error'
@@ -13,8 +13,8 @@ export const getAllPackageIdsByDeploymentsId = function (deploymentsId) {
   return models.Packages.findAll({ where: { deployment_id: deploymentsId } });
 };
 
-export const existDeloymentName = function (appId, name) {
-  return models.Deployments.findOne({ where: { appid: appId, name: name } })
+export const existDeloymentName = function (appId: number, name: string) {
+  return models.Deployments.findOne({ where: { appid: appId, name } })
     .then((data) => {
       if (!_.isEmpty(data)) {
         throw new AppError(name + " name does Exist!")
@@ -45,21 +45,18 @@ export const addDeloyment = function (name, appId, uid) {
     });
 };
 
-export const renameDeloymentByName = function (deploymentName, appId, newName) {
-  return existDeloymentName(appId, newName)
-    .then(() => {
-      return Promise(models.Deployments.update(
-        { name: newName },
-        { where: { name: deploymentName, appid: appId } }
-      ))
-        .spread((affectedCount, affectedRow) => {
-          if (_.gt(affectedCount, 0)) {
-            return { name: newName };
-          } else {
-            throw new AppError(`does not find the deployment "${deploymentName}"`);
-          }
-        });
-    });
+export const renameDeloymentByName = async function (deploymentName, appId, newName) {
+  await existDeloymentName(appId, newName)
+
+  const [affectedCount, affectedRow] = await models.Deployments.update(
+    { name: newName },
+    { where: { name: deploymentName, appid: appId } }
+  )
+  if (_.gt(affectedCount, 0)) {
+    return { name: newName };
+  } else {
+    throw new AppError(`does not find the deployment "${deploymentName}"`);
+  }
 };
 
 export const deleteDeloymentByName = function (deploymentName, appId) {
@@ -82,33 +79,31 @@ export const findDeloymentByName = function (deploymentName, appId) {
   });
 };
 
-export const findPackagesAndOtherInfos = function (packageId) {
-  return models.Packages.findOne({
+export const findPackagesAndOtherInfos = async function (packageId) {
+  const packageInfo = await models.Packages.findOne({
     where: { id: packageId }
   })
-    .then((packageInfo) => {
-      if (!packageInfo) {
+  if (!packageInfo) {
+    return null;
+  }
+  return bluebird.props({
+    packageInfo: packageInfo,
+    packageDiffMap: models.PackagesDiff.findAll({ where: { package_id: packageId } })
+      .then((diffs) => {
+        if (diffs.length > 0) {
+          return _.reduce(diffs, (result, v) => {
+            result[_.get(v, 'diff_against_package_hash')] = {
+              size: _.get(v, 'diff_size'),
+              url: common.getBlobDownloadUrl(_.get(v, 'diff_blob_url')),
+            };
+            return result;
+          }, {});
+        }
         return null;
-      }
-      return Promise.props({
-        packageInfo: packageInfo,
-        packageDiffMap: models.PackagesDiff.findAll({ where: { package_id: packageId } })
-          .then((diffs) => {
-            if (diffs.length > 0) {
-              return _.reduce(diffs, (result, v) => {
-                result[_.get(v, 'diff_against_package_hash')] = {
-                  size: _.get(v, 'diff_size'),
-                  url: common.getBlobDownloadUrl(_.get(v, 'diff_blob_url')),
-                };
-                return result;
-              }, {});
-            }
-            return null;
-          }),
-        userInfo: models.Users.findOne({ where: { id: packageInfo.released_by } }),
-        deploymentsVersions: models.DeploymentsVersions.findByPk(packageInfo.deployment_version_id)
-      });
-    });
+      }),
+    userInfo: models.Users.findOne({ where: { id: packageInfo.released_by } }),
+    deploymentsVersions: models.DeploymentsVersions.findByPk(packageInfo.deployment_version_id)
+  });
 };
 
 export const findDeloymentsPackages = function (deploymentsVersionsId) {
@@ -145,20 +140,18 @@ export const formatPackage = function (packageVersion) {
   };
 };
 
-export const listDeloyments = function (appId) {
-  return models.Deployments.findAll({ where: { appid: appId } })
-    .then((deploymentsInfos) => {
-      if (_.isEmpty(deploymentsInfos)) {
-        return [];
-      }
-      return Promise.map(deploymentsInfos, (v) => {
-        return listDeloyment(v);
-      })
-    });
+export const listDeloyments = async function (appId) {
+  const deploymentsInfos = await models.Deployments.findAll({ where: { appid: appId } })
+  if (_.isEmpty(deploymentsInfos)) {
+    return [];
+  }
+  return bluebird.map(deploymentsInfos, (v) => {
+    return listDeloyment(v);
+  })
 };
 
 export const listDeloyment = function (deploymentInfo) {
-  return Promise.props({
+  return bluebird.props({
     createdTime: parseInt(moment(deploymentInfo.created_at).format('x')),
     id: `${deploymentInfo.id}`,
     key: deploymentInfo.deployment_key,
@@ -173,7 +166,7 @@ export const getDeploymentHistory = function (deploymentId) {
       return _.map(history, (v) => { return v.package_id });
     })
     .then((packageIds) => {
-      return Promise.map(packageIds, (v) => {
+      return bluebird.map(packageIds, (v) => {
         return findPackagesAndOtherInfos(v).then(formatPackage);
       });
     });
@@ -188,19 +181,19 @@ export const deleteDeploymentHistory = function (deploymentId) {
       ),
       models.DeploymentsHistory.findAll({ where: { deployment_id: deploymentId }, order: [['id', 'desc']], limit: 1000 })
         .then((rs) => {
-          return Promise.map(rs, (v) => {
+          return bluebird.map(rs, (v) => {
             return v.destroy({ transaction: t });
           });
         }),
       models.DeploymentsVersions.findAll({ where: { deployment_id: deploymentId }, order: [['id', 'desc']], limit: 1000 })
         .then((rs) => {
-          return Promise.map(rs, (v) => {
+          return bluebird.map(rs, (v) => {
             return v.destroy({ transaction: t });
           });
         }),
       models.Packages.findAll({ where: { deployment_id: deploymentId }, order: [['id', 'desc']], limit: 1000 })
         .then((rs) => {
-          return Promise.map(rs, (v) => {
+          return bluebird.map(rs, (v) => {
             return v.destroy({ transaction: t })
               .then(() => {
                 return Promise.all([

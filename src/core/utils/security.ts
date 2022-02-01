@@ -2,7 +2,6 @@
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import * as fs from 'fs'
-import Promise from 'bluebird'
 import qeTag from '../utils/qetag'
 import _ from 'lodash'
 import log4js from 'log4js'
@@ -77,7 +76,7 @@ export const packageHashSync = function (jsonData) {
 }
 
 // The parameter is buffer or readableStream or file path
-export const qetag = function (buffer) {
+export const qetag = function (buffer): Promise<string> {
   if (typeof buffer === 'string') {
     try {
       log.debug(`Check upload file ${buffer} fs.R_OK`);
@@ -115,38 +114,30 @@ export const sha256AllFiles = function (files) {
   });
 }
 
-export const uploadPackageType = function (directoryPath) {
-  return new Promise((resolve, reject) => {
+export const uploadPackageType = async function (directoryPath) {
+  try {
+    const files = await recursive(directoryPath)
+    if (files.length == 0) {
+      log.debug(`uploadPackageType empty files`);
+      throw new AppError("empty files")
+    } 
+    const AREGEX = /android\.bundle/
+    const AREGEX_IOS = /main\.jsbundle/
 
-    recursive(directoryPath, (err, files) => {
-      if (err) {
-        log.error(new AppError(err.message));
-        reject(new AppError(err.message));
-      } else {
-        if (files.length == 0) {
-          log.debug(`uploadPackageType empty files`);
-          reject(new AppError("empty files"));
-        } else {
-          const AREGEX = /android\.bundle/
-          const AREGEX_IOS = /main\.jsbundle/
-          var packageType = 0;
-          _.forIn(files, function (value) {
-            if (AREGEX.test(value)) {
-              packageType = constName.ANDROID;
-              return false;
-            }
-            if (AREGEX_IOS.test(value)) {
-              packageType = constName.IOS;
-              return false;
-            }
-            return
-          });
-          log.debug(`uploadPackageType packageType: ${packageType}`);
-          resolve(packageType);
-        }
-      }
-    });
-  });
+    const androidMatch = files.find(value => AREGEX.test(value))
+    const iOSMatch = files.find(value => AREGEX_IOS.test(value))
+    const packageType = androidMatch ? constName.ANDROID : iOSMatch ? constName.IOS : 0
+
+    log.debug(`uploadPackageType packageType: ${packageType}`);
+
+    return packageType
+  }
+  catch (e: any) {
+    log.error(new AppError(e.error));
+    throw new AppError(e.message)
+  }
+
+
 }
 
 // some files are ignored in calc hash in client sdk

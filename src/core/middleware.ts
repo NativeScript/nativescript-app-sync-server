@@ -1,5 +1,4 @@
 import _ from 'lodash'
-import Promise from 'bluebird'
 import * as security from './utils/security'
 import * as models from '../models'
 import moment from 'moment'

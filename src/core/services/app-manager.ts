@@ -1,10 +1,10 @@
 import * as models from '../../models'
 import _ from 'lodash'
+import bluebird from 'bluebird'
 import * as security from '../../core/utils/security'
 import { AppError } from '../app-error'
 import constName from '../constants'
 import Sequelize from 'sequelize'
-import { Promise } from 'bluebird'
 
 export const findAppByName = function (uid, appName) {
   return models.Apps.findOne({ where: { name: appName, uid: uid } });
@@ -88,7 +88,7 @@ export const listApps = function (uid) {
       }
     })
     .then((appInfos) => {
-      var rs = Promise.map(_.values(appInfos), (v) => {
+      var rs = bluebird.map(_.values(appInfos), (v) => {
         return getAppDetailInfo(v, uid)
           .then((info) => {
             if (info.os == constName.IOS) {
@@ -122,8 +122,8 @@ export const getAppDetailInfo = function (appInfo, currentUid) {
       const collaboratorInfos = res[1]
       const deploymentInfos = res[0]
 
-      return Promise.props({
-        collaborators: Promise.reduce(collaboratorInfos, (allCol, collaborator) => {
+      return bluebird.props({
+        collaborators: bluebird.reduce(collaboratorInfos, (allCol, collaborator) => {
           return models.Users.findOne({ where: { id: collaborator.get('uid') } })
             .then((u: any) => {
               var isCurrentAccount = false;

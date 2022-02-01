@@ -3,7 +3,7 @@ import { Stream } from 'stream'
 import fs from 'fs'
 
 // Calculate the eTag of the file, the parameter is buffer or readableStream or file path
-function getEtag(buffer, callback) {
+function getEtag(buffer, callback: (tag: string) => void) {
 
 	// Determine whether the incoming parameter is buffer or stream or filepath
 	var mode = 'buffer';
@@ -16,7 +16,7 @@ function getEtag(buffer, callback) {
 	}
 
 	// sha1 algorithm
-	var sha1 = function (content) {
+	const sha1 = function (content) {
 		var sha1 = crypto.createHash('sha1');
 		sha1.update(content);
 		return sha1.digest();

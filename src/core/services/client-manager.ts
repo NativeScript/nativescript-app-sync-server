@@ -1,5 +1,6 @@
 import * as models from '../../models'
 import _ from 'lodash'
+import bluebird from 'bluebird'
 import * as common from '../utils/common'
 import constConfig from '../constants';
 import { getRedisClient } from '../utils/redis'
@@ -7,7 +8,6 @@ import { AppError } from '../app-error'
 import * as config from '../config'
 import log4js from 'log4js'
 import Sequelize from 'sequelize'
-import BPromise from 'bluebird'
 
 const log = log4js.getLogger("cps:ClientManager")
 
@@ -27,7 +27,7 @@ export const clearUpdateCheckCache = async function (deploymentKey, appVersion, 
   return client.keys(redisCacheKey)
     .then((data) => {
       if (_.isArray(data)) {
-        return BPromise.map(data, (key) => {
+        return bluebird.map(data, (key) => {
           return client.del(key);
         });
       }
@@ -75,15 +75,15 @@ export const getChosenManCacheKey = function (packageId, rollout, clientUniqueId
 export const random = function (rollout) {
   var r = Math.ceil(Math.random() * 10000);
   if (r < rollout * 100) {
-    return BPromise.resolve(true);
+    return Promise.resolve(true);
   } else {
-    return BPromise.resolve(false);
+    return Promise.resolve(false);
   }
 }
 
 export const chosenMan = function (packageId, rollout, clientUniqueId) {
   if (rollout >= 100) {
-    return BPromise.resolve(true);
+    return Promise.resolve(true);
   }
   var rolloutClientUniqueIdCache = _.get(config, 'common.rolloutClientUniqueIdCache', false);
   if (rolloutClientUniqueIdCache === false) {
@@ -129,7 +129,7 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
   };
 
   if (_.isEmpty(deploymentKey) || _.isEmpty(appVersion)) {
-    return BPromise.reject(new AppError("please input deploymentKey and appVersion"))
+    return Promise.reject(new AppError("please input deploymentKey and appVersion"))
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
@@ -211,7 +211,7 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
 
 export const getPackagesInfo = function (deploymentKey, label) {
   if (_.isEmpty(deploymentKey) || _.isEmpty(label)) {
-    return BPromise.reject(new AppError("please input deploymentKey and label"))
+    return Promise.reject(new AppError("please input deploymentKey and label"))
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
@@ -231,8 +231,8 @@ export const getPackagesInfo = function (deploymentKey, label) {
 export const reportStatusDownload = function (deploymentKey, label, clientUniqueId) {
   return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
-      return BPromise.all([
-        models.PackagesMetrics.findOne({ where: { package_id: packages.id } })
+      return Promise.all([
+        models.PackagesMetrics.findOne({ where: { package_id: packages?.id } })
           .then((metrics) => {
             if (metrics) {
               return metrics.increment('downloaded');
@@ -240,7 +240,7 @@ export const reportStatusDownload = function (deploymentKey, label, clientUnique
             return;
           }),
         models.LogReportDownload.create({
-          package_id: packages.id,
+          package_id: Number(packages?.id),
           client_unique_id: clientUniqueId
         })
       ]);
@@ -250,18 +250,18 @@ export const reportStatusDownload = function (deploymentKey, label, clientUnique
 export const reportStatusDeploy = function (deploymentKey, label, clientUniqueId, others) {
   return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
-      var statusText = _.get(others, "status");
+      const statusText = _.get(others, "status");
       var status = 0;
       if (_.eq(statusText, "DeploymentSucceeded")) {
         status = constConfig.DEPLOYMENT_SUCCEEDED;
       } else if (_.eq(statusText, "DeploymentFailed")) {
         status = constConfig.DEPLOYMENT_FAILED;
       }
-      var packageId = packages.id;
-      var previous_deployment_key = _.get(others, 'previousDeploymentKey');
-      var previous_label = _.get(others, 'previousLabelOrAppVersion');
+      const packageId = Number(packages?.id);
+      const previous_deployment_key = _.get(others, 'previousDeploymentKey');
+      const previous_label = _.get(others, 'previousLabelOrAppVersion');
       if (status > 0) {
-        return BPromise.all([
+        return Promise.all([
           models.LogReportDeploy.create({
             package_id: packageId,
             client_unique_id: clientUniqueId,

@@ -217,7 +217,7 @@ export const unzipFile = function (zipFile, outputPath) {
 };
 
 export const uploadFileToStorage = function (key, filePath) {
-  var storageType = _.get(config, 'export const storageType');
+  var storageType = _.get(config, 'common.storageType');
   console.log(">>>> storageType: " + storageType);
   console.log(">>>> storageType, key: " + key);
   console.log(">>>> storageType, filePath: " + filePath);
@@ -288,7 +288,7 @@ export const uploadFileToLocal = function (key, filePath) {
 
 export const getBlobDownloadUrl = function (blobUrl) {
   var fileName = blobUrl;
-  var storageType = _.get(config, 'export const storageType');
+  var storageType = _.get(config, 'common.storageType');
   var downloadUrl = _.get(config, `${storageType}.downloadUrl`);
   if (storageType === 'local') {
     fileName = blobUrl.substr(0, 2).toLowerCase() + '/' + blobUrl;
