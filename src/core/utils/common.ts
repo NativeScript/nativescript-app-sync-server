@@ -9,11 +9,14 @@ import { AppError } from '../app-error'
 import jschardet from "jschardet"
 import log4js from 'log4js'
 import path from 'path'
+import AWS from 'aws-sdk'
+import request from 'request'
+
 const log = log4js.getLogger("cps:utils:common")
 
-export const slash = (path) => {
+export const slash = (path: string) => {
   const isExtendedLengthPath = /^\\\\\?\\/.test(path);
-  const hasNonAscii = /[^\u0000-\u0080]+/.test(path);
+  const hasNonAscii = /[^\u0000-\u0080]+/.test(path); // eslint-disable-line no-control-regex
 
   if (isExtendedLengthPath || hasNonAscii) {
     return path;
@@ -95,7 +98,6 @@ export const createFileFromRequest = function (url, filePath) {
   return new Promise((resolve, reject) => {
     fs.exists(filePath, function (exists) {
       if (!exists) {
-        var request = require('request');
         log.debug(`createFileFromRequest url:${url}`)
         request(url).on('error', function (error) {
           reject(error);
@@ -300,7 +302,6 @@ export const getBlobDownloadUrl = function (blobUrl) {
 };
 
 export const uploadFileToS3 = function (key, filePath) {
-  var AWS = require('aws-sdk');
   console.log(">>>>>> uploadFileToS3 accessKeyId " + _.get(config, 's3.accessKeyId'));
   console.log(">>>>>> uploadFileToS3 secretAccessKey " + _.get(config, 's3.secretAccessKey'));
   console.log(">>>>>> uploadFileToS3 sessionToken " + _.get(config, 's3.sessionToken'));
@@ -314,11 +315,11 @@ export const uploadFileToS3 = function (key, filePath) {
         sessionToken: _.get(config, 's3.sessionToken'),
         region: _.get(config, 's3.region')
       });
-      var s3 = new AWS.S3({
-        params: { Bucket: _.get(config, 's3.bucketName') }
-      });
+      const s3 = new AWS.S3()
+
       fs.readFile(filePath, (err, data) => {
         s3.upload({
+          Bucket: _.get(config, 's3.bucketName'),
           Key: key,
           Body: data,
           ACL: 'public-read',

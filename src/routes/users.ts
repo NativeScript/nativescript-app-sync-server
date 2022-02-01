@@ -88,7 +88,7 @@ router.get('/registerCode/exists', (req, res, next) => {
     });
 });
 
-//修改密码
+//change Password
 router.patch('/password', middleware.checkToken, (req, res, next) => {
   var oldPassword = _.trim(_.get(req, 'body.oldPassword'));
   var newPassword = _.trim(_.get(req, 'body.newPassword'));

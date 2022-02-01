@@ -2,39 +2,44 @@ import express from 'express'
 import _ from 'lodash'
 import * as security from '../core/utils/security'
 import * as models from '../models'
-import * as middleware from '../core/middleware'
 import * as accountManager from '../core/services/account-manager'
 import { AppError } from '../core/app-error'
 import log4js from 'log4js'
 import moment from 'moment'
+import * as t from 'io-ts'
+import { validateAndDecode } from '~/core/utils/validation'
 
 const log = log4js.getLogger("cps:accessKey")
 const router = express.Router();
 
-declare global {
-  namespace Express {
-      interface Request {users: any}
-  }
-}
+router.get('/', (req, res, next) => {
+  const uid = req.users.id
+  accountManager.getAllAccessKeyByUid(uid)
+    .then((accessKeys) => {
+      res.send({ accessKeys })
+    })
+    .catch((e) => {
+      next(e)
+    })
+});
 
-router.get('/', middleware.checkToken, (req, res, next) => {
-    var uid = req.users.id
-    accountManager.getAllAccessKeyByUid(uid)
-      .then((accessKeys) => {
-        res.send({ accessKeys })
-      })
-      .catch((e) => {
-        next(e)
-      })
-  });
+const CreateAccessKey = t.type({
+  ttl: t.number,
+  description: t.union([t.string, t.undefined]),
+  friendlyName: t.string
+})
 
-router.post('/', middleware.checkToken, (req, res, next) => {
-  var uid = req.users.id;
-  var identical = req.users.identical;
-  var createdBy = _.trim(req.body.createdBy);
-  var friendlyName = _.trim(req.body.friendlyName);
-  var ttl = parseInt(req.body.ttl);
-  var description = _.trim(req.body.description);
+router.post('/', (req, res, next) => {
+  const params = validateAndDecode(CreateAccessKey, req.body)
+
+  const uid = req.users.id;
+  const identical = req.users.identical;
+  const createdBy = uid;
+
+  const friendlyName = _.trim(params.friendlyName);
+  const ttl = params.ttl
+  const description = _.trim(params.description);
+
   log.debug(req.body);
   var newAccessKey = security.randToken(28).concat(identical);
   return accountManager.isExsitAccessKeyName(uid, friendlyName)
@@ -69,7 +74,7 @@ router.post('/', middleware.checkToken, (req, res, next) => {
     });
 });
 
-router.delete('/:name', middleware.checkToken, (req, res, next) => {
+router.delete('/:name', (req, res, next) => {
   var name = _.trim(decodeURI(req.params.name));
   var uid = req.users.id;
   return models.UserTokens.destroy({ where: { name, uid } })

@@ -14,7 +14,15 @@ import users from './routes/users'
 import apps from './routes/apps'
 import log4js from 'log4js'
 import dotenv from 'dotenv'
+import * as middleware from "./core/middleware"
+import { UsersAttributes } from "./models/users"
 dotenv.config()
+
+declare global {
+  namespace Express {
+    interface Request { users: UsersAttributes }
+  }
+}
 
 log4js.configure(_.get(config, 'log4js', {
   appenders: { console: { type: 'console' } },
@@ -72,10 +80,10 @@ if (_.get(config, 'common.storageType') === 'local') {
 
 app.use('/', routes);
 app.use('/auth', auth);
-app.use('/accessKeys', accessKeys);
-app.use('/account', account);
+app.use('/accessKeys', middleware.checkToken, accessKeys);
+app.use('/account', middleware.checkToken, account);
+app.use('/apps', middleware.checkToken, apps);
 app.use('/users', users);
-app.use('/apps', apps);
 
 const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {

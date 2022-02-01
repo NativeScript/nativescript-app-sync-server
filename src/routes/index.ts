@@ -1,13 +1,9 @@
 import express from 'express'
-import Promise from 'bluebird'
 import { AppError } from '../core/app-error'
 import * as middleware from '../core/middleware'
 import * as clientManager from '../core/services/client-manager'
 import _ from 'lodash'
 import log4js from 'log4js'
-import MarkdownIt from 'markdown-it'
-import path from 'path'
-import fs from 'fs'
 
 const log = log4js.getLogger("cps:index");
 const router = express.Router();
@@ -21,7 +17,6 @@ router.get('/updateCheck', (req, res, next) => {
   log.info('req.query', req.query);
   clientManager.updateCheckFromCache(deploymentKey, appVersion, label, packageHash, clientUniqueId)
     .then((rs) => {
-      //灰度检测
       return clientManager.chosenMan(rs.packageId, rs.rollout, clientUniqueId)
         .then((data) => {
           if (!data) {

@@ -1,26 +1,23 @@
 import express from 'express'
 import Promise from 'bluebird'
 import _ from 'lodash'
-import * as middleware from '../core/middleware'
 import validator from 'validator'
 import * as accountManager from '../core/services/account-manager'
 import * as deployments from '../core/services/deployments'
 import * as collaborators from '../core/services/collaborators'
 import * as appManager from '../core/services/app-manager'
 import * as packageManager from '../core/services/package-manager'
+import * as clientManager from '../core/services/client-manager'
 import { AppError } from '../core/app-error'
 import * as common from '../core/utils/common'
 import config from '../core/config'
 import log4js from 'log4js'
 import constName from '../core/constants'
 
-const REGEX = /^(\w+)(-android|-ios)$/;
-const REGEX_ANDROID = /^(\w+)(-android)$/;
-const REGEX_IOS = /^(\w+)(-ios)$/;
 const log = log4js.getLogger("cps:apps");
 const router = express.Router();
 
-router.get('/', middleware.checkToken, (req, res, next) => {
+router.get('/', (req, res, next) => {
   var uid = req.users.id;
   appManager.listApps(uid)
     .then((data) => {
@@ -36,7 +33,7 @@ router.get('/', middleware.checkToken, (req, res, next) => {
 });
 
 router.get('/:appName/deployments',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var uid = req.users.id;
     var appName = _.trim(req.params.appName);
 
@@ -57,7 +54,7 @@ router.get('/:appName/deployments',
   });
 
 router.get('/:appName/deployments/:deploymentName',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var uid = req.users.id;
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
@@ -82,7 +79,7 @@ router.get('/:appName/deployments/:deploymentName',
   });
 
 router.post('/:appName/deployments',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var uid = req.users.id;
     var appName = _.trim(req.params.appName);
     var name = req.body.name;
@@ -103,7 +100,7 @@ router.post('/:appName/deployments',
   });
 
 router.get('/:appName/deployments/:deploymentName/metrics',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var uid = req.users.id;
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
@@ -149,7 +146,7 @@ router.get('/:appName/deployments/:deploymentName/metrics',
   });
 
 router.get('/:appName/deployments/:deploymentName/history',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var uid = req.users.id;
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
@@ -179,7 +176,7 @@ router.get('/:appName/deployments/:deploymentName/history',
   });
 
 router.delete('/:appName/deployments/:deploymentName/history',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var uid = req.users.id;
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
@@ -209,7 +206,7 @@ router.delete('/:appName/deployments/:deploymentName/history',
   });
 
 router.patch('/:appName/deployments/:deploymentName',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var name = req.body.name;
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
@@ -231,7 +228,7 @@ router.patch('/:appName/deployments/:deploymentName',
   });
 
 router.delete('/:appName/deployments/:deploymentName',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
     var uid = req.users.id;
@@ -252,7 +249,7 @@ router.delete('/:appName/deployments/:deploymentName',
   });
 
 router.post('/:appName/deployments/:deploymentName/release',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
     var uid = req.users.id;
@@ -291,8 +288,6 @@ router.post('/:appName/deployments/:deploymentName/release',
                 if (_.get(config, 'common.updateCheckCache', false) !== false) {
                   Promise.delay(2500)
                     .then(() => {
-                      var ClientManager = require('../core/services/client-manager');
-                      var clientManager = new ClientManager();
                       clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
                     });
                 }
@@ -313,7 +308,7 @@ router.post('/:appName/deployments/:deploymentName/release',
   });
 
 router.patch('/:appName/deployments/:deploymentName/release',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     log.debug('req.body', req.body);
     var appName = _.trim(req.params.appName);
     var deploymentName = _.trim(req.params.deploymentName);
@@ -349,8 +344,6 @@ router.patch('/:appName/deployments/:deploymentName/release',
                 if (_.get(config, 'common.updateCheckCache', false) !== false) {
                   Promise.delay(2500)
                     .then(() => {
-                      var ClientManager = require('../core/services/client-manager');
-                      var clientManager = new ClientManager();
                       clientManager.clearUpdateCheckCache(deploymentInfo.deployment_key, '*', '*', '*');
                     });
                 }
@@ -370,7 +363,7 @@ router.patch('/:appName/deployments/:deploymentName/release',
 
 
 router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeploymentName',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     log.debug('req.body:', req.body);
     var appName = _.trim(req.params.appName);
     var sourceDeploymentName = _.trim(req.params.sourceDeploymentName);
@@ -411,8 +404,6 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
             if (_.get(config, 'common.updateCheckCache', false) !== false) {
               Promise.delay(2500)
                 .then(() => {
-                  var ClientManager = require('../core/services/client-manager');
-                  var clientManager = new ClientManager();
                   clientManager.clearUpdateCheckCache(destDeploymentInfo.deployment_key, '*', '*', '*');
                 });
             }
@@ -456,8 +447,6 @@ var rollbackCb = function (req, res, next) {
           if (_.get(config, 'common.updateCheckCache', false) !== false) {
             Promise.delay(2500)
               .then(() => {
-                var ClientManager = require('../core/services/client-manager');
-                var clientManager = new ClientManager();
                 clientManager.clearUpdateCheckCache(dep?.deployment_key, '*', '*', '*');
               });
           }
@@ -477,13 +466,13 @@ var rollbackCb = function (req, res, next) {
 };
 
 router.post('/:appName/deployments/:deploymentName/rollback',
-  middleware.checkToken, rollbackCb);
+  rollbackCb);
 
 router.post('/:appName/deployments/:deploymentName/rollback/:label',
-  middleware.checkToken, rollbackCb);
+  rollbackCb);
 
 router.get('/:appName/collaborators',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var uid = req.users.id;
     accountManager.collaboratorCan(uid, appName)
@@ -512,7 +501,7 @@ router.get('/:appName/collaborators',
   });
 
 router.post('/:appName/collaborators/:email',
-  middleware.checkToken, function (req, res, next) {
+  function (req, res, next) {
     var appName = _.trim(req.params.appName)
     var email = _.trim(req.params.email)
     var uid = req.users.id
@@ -540,7 +529,7 @@ router.post('/:appName/collaborators/:email',
   });
 
 router.delete('/:appName/collaborators/:email',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var email = _.trim(decodeURI(req.params.email));
     var uid = req.users.id;
@@ -572,7 +561,7 @@ router.delete('/:appName/collaborators/:email',
   });
 
 router.delete('/:appName',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var uid = req.users.id;
     accountManager.ownerCan(uid, appName)
@@ -592,7 +581,7 @@ router.delete('/:appName',
   });
 
 router.patch('/:appName',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var newAppName = _.trim(req.body.name);
     var appName = _.trim(req.params.appName);
     var uid = req.users.id;
@@ -623,7 +612,7 @@ router.patch('/:appName',
   });
 
 router.post('/:appName/transfer/:email',
-  middleware.checkToken, (req, res, next) => {
+  (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var email = _.trim(req.params.email);
     var uid = req.users.id;
@@ -652,7 +641,7 @@ router.post('/:appName/transfer/:email',
       });
   });
 
-router.post('/', middleware.checkToken, (req, res, next) => {
+router.post('/', (req, res, next) => {
   log.debug("addApp params:", req.body);
 
   var appName = req.body.name;

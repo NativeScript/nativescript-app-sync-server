@@ -7,13 +7,15 @@ import * as common from '../utils/common'
 import { AppError } from '../app-error'
 import log4js from 'log4js'
 import path from 'path'
+import config from '../config'
+
 const MANIFEST_FILE_NAME = 'manifest.json';
 const CONTENTS_NAME = 'contents';
 
 const log = log4js.getLogger("cps:DataCenterManager");
 
 export const getDataDir = function () {
-  var dataDir = _.get(require('../config'), 'common.dataDir', {});
+  var dataDir = _.get(config, 'common.dataDir', {});
   if (_.isEmpty(dataDir)) {
     dataDir = os.tmpdir();
   }

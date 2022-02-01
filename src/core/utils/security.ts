@@ -7,7 +7,11 @@ import qeTag from '../utils/qetag'
 import _ from 'lodash'
 import log4js from 'log4js'
 import randtoken from 'rand-token'
+import recursive from "recursive-readdir"
+import path from 'path'
+import constName from '../constants'
 import { AppError } from '../app-error'
+import { slash } from './common';
 const log = log4js.getLogger("cps:utils:security")
 
 randtoken.generator({
@@ -113,9 +117,7 @@ export const sha256AllFiles = function (files) {
 
 export const uploadPackageType = function (directoryPath) {
   return new Promise((resolve, reject) => {
-    var recursive = require("recursive-readdir");
-    var path = require('path');
-    var slash = require("slash");
+
     recursive(directoryPath, (err, files) => {
       if (err) {
         log.error(new AppError(err.message));
@@ -125,7 +127,6 @@ export const uploadPackageType = function (directoryPath) {
           log.debug(`uploadPackageType empty files`);
           reject(new AppError("empty files"));
         } else {
-          var constName = require('../constants');
           const AREGEX = /android\.bundle/
           const AREGEX_IOS = /main\.jsbundle/
           var packageType = 0;
@@ -179,9 +180,6 @@ export const isPackageHashIgnored = function (relativePath) {
 
 export const calcAllFileSha256 = function (directoryPath) {
   return new Promise((resolve, reject) => {
-    var recursive = require("recursive-readdir");
-    var path = require('path');
-    var slash = require("slash");
     recursive(directoryPath, (error, files) => {
       if (error) {
         log.error(error);
