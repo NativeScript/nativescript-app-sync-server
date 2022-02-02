@@ -13,36 +13,33 @@ export const getAllPackageIdsByDeploymentsId = function (deploymentsId) {
   return models.Packages.findAll({ where: { deployment_id: deploymentsId } });
 };
 
-export const existDeloymentName = function (appId: number, name: string) {
-  return models.Deployments.findOne({ where: { appid: appId, name } })
-    .then((data) => {
-      if (!_.isEmpty(data)) {
-        throw new AppError(name + " name does Exist!")
-      } else {
-        return data;
-      }
-    });
+export const existDeloymentName = async function (appId: number, name: string) {
+  const data = await models.Deployments.findOne({ where: { appid: appId, name } })
+  if (!_.isEmpty(data)) {
+    throw new AppError(name + " name does Exist!")
+  } else {
+    return data;
+  }
 };
 
-export const addDeloyment = function (name, appId, uid) {
-  return models.Users.findByPk(uid)
-    .then((user) => {
-      if (_.isEmpty(user)) {
-        throw new AppError('can\'t find user');
-      }
-      return existDeloymentName(appId, name)
-        .then(() => {
-          var identical = user?.identical;
-          var deploymentKey = security.randToken(28) + identical;
-          return models.Deployments.create({
-            appid: appId,
-            name: name,
-            deployment_key: deploymentKey,
-            last_deployment_version_id: 0,
-            label_id: 0
-          });
-        });
-    });
+export const addDeloyment = async function (name, appId, uid) {
+  const user = await models.Users.findByPk(uid)
+  if (_.isEmpty(user)) {
+    throw new AppError('can\'t find user');
+  }
+
+  await existDeloymentName(appId, name)
+
+  const identical = user?.identical;
+  const deploymentKey = security.randToken(28) + identical;
+
+  return models.Deployments.create({
+    appid: appId,
+    name: name,
+    deployment_key: deploymentKey,
+    last_deployment_version_id: 0,
+    label_id: 0
+  });
 };
 
 export const renameDeloymentByName = async function (deploymentName, appId, newName) {
@@ -59,27 +56,25 @@ export const renameDeloymentByName = async function (deploymentName, appId, newN
   }
 };
 
-export const deleteDeloymentByName = function (deploymentName, appId) {
-  return models.Deployments.destroy({
+export const deleteDeloymentByName = async function (deploymentName: string, appId: number | undefined) {
+  const rowNum = await models.Deployments.destroy({
     where: { name: deploymentName, appid: appId }
   })
-    .then((rowNum) => {
-      if (_.gt(rowNum, 0)) {
-        return { name: `${deploymentName}` };
-      } else {
-        throw new AppError(`does not find the deployment "${deploymentName}"`);
-      }
-    });
+  if (_.gt(rowNum, 0)) {
+    return { name: `${deploymentName}` };
+  } else {
+    throw new AppError(`does not find the deployment "${deploymentName}"`);
+  }
 };
 
-export const findDeloymentByName = function (deploymentName, appId) {
+export const findDeloymentByName = function (deploymentName: string, appId: number | undefined) {
   log.debug(`findDeloymentByName name:${deploymentName},appId: ${appId}`);
   return models.Deployments.findOne({
     where: { name: deploymentName, appid: appId }
   });
 };
 
-export const findPackagesAndOtherInfos = async function (packageId) {
+export const findPackagesAndOtherInfos = async function (packageId: number | undefined) {
   const packageInfo = await models.Packages.findOne({
     where: { id: packageId }
   })

@@ -22,7 +22,7 @@ export default {
   local: {
     // Binary files storage dir, Do not use tmpdir and it's public download dir.
     //storageDir: process.env.STORAGE_DIR, //|| "/app/_storage", // TODO this gets wiped upon deploy.. so move to The Cloud™️
-    storageDir: process.env.STORAGE_DIR || "./_storage",
+    storageDir: process.env.STORAGE_DIR || "../_storage",
     // Binary files download host address which Code Push Server listen to. the files storage in storageDir.
     downloadUrl: process.env.LOCAL_DOWNLOAD_URL || "https://localhost.com/download",
     // public static download spacename.

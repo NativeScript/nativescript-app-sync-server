@@ -76,22 +76,21 @@ export const createDeploymentsVersionIfNotExist = async function (deploymentId: 
   return data;
 };
 
-export const isMatchPackageHash = function (packageId, packageHash) {
+export const isMatchPackageHash = async function (packageId: number, packageHash: string) {
   if (_.lt(packageId, 0)) {
     log.debug(`isMatchPackageHash packageId is 0`);
     return Promise.resolve(false);
   }
-  return models.Packages.findByPk(packageId)
-    .then((data) => {
-      if (data && _.eq(data.get('package_hash'), packageHash)) {
-        log.debug(`isMatchPackageHash data:`, data.get());
-        log.debug(`isMatchPackageHash packageHash exist`);
-        return true;
-      } else {
-        log.debug(`isMatchPackageHash package is null`);
-        return false;
-      }
-    });
+  const data = await models.Packages.findByPk(packageId)
+  
+  if (data && _.eq(data.get('package_hash'), packageHash)) {
+    log.debug(`isMatchPackageHash data:`, data.get());
+    log.debug(`isMatchPackageHash packageHash exist`);
+    return true;
+  } else {
+    log.debug(`isMatchPackageHash package is null`);
+    return false;
+  }
 };
 
 export const createPackage = async function (deploymentId: number, appVersion: string, packageHash: string, manifestHash: string, blobHash: string, params) {
@@ -222,7 +221,7 @@ export const generateOneDiffPackage = function (
           var files = _.concat(json.diff, json.collection1Only);
           var hotcodepush: any = { deletedFiles: json.collection2Only, patchedFiles: [] as any };
           if (isUseDiffText == constConfig.IS_USE_DIFF_TEXT_YES) {
-            //使用google diff-match-patch
+            //Use google diff-match-patch
             _.forEach(json.diff, function (tmpFilePath) {
               var dataCenterContentPathTmpFilePath = path.join(dataCenterContentPath, tmpFilePath);
               var oldPackageDataCenterContentPathTmpFilePath = path.join(oldPackageDataCenterContentPath, tmpFilePath);
