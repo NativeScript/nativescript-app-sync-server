@@ -1,29 +1,28 @@
-var app = require('../../../app');
-var request = require('supertest')(app);
-var should = require("should");
-var security = require('../../../core/utils/security');
-var factory = require('../../../core/utils/redis');
-var _ = require('lodash');
+import app from '../../app'
+import supertest from 'supertest'
+import should from "should"
+import _ from 'lodash'
+import { TEST_ACCOUNT, TEST_PASSWORD, TEST_COLABORATOR_ACCOUNT } from '../index.test'
+
+const request = supertest(app)
 
 describe('api/apps/apps.test.js', function() {
-  var account = '522539441@qq.com';
-  var email = 'lisong2010@gmail.com';
-  var emailInvalid = 'lisong2010';
-  var password = '123456';
-  var authToken;
-  var machineName = `Login-${Math.random()}`;
-  var friendlyName = `Login-${Math.random()}`;
-  var appName = 'test';
-  var newAppName = 'newtest';
+  const emailInvalid = TEST_COLABORATOR_ACCOUNT + 'hello';
+  const machineName = `Login-${Math.random()}`;
+  const friendlyName = `Login-${Math.random()}`;
+  const appName = 'test';
+  const newAppName = 'newtest';
+  const testDeployment = 'test';
+  const newTestDeployment = 'newtest';
   var bearerToken;
-  var testDeployment = 'test';
-  var newTestDeployment = 'newtest';
+  var authToken;
+
 
   before(function(done){
     request.post('/auth/login')
     .send({
-      account: account,
-      password: password
+      account: TEST_ACCOUNT,
+      password: TEST_PASSWORD
     })
     .end(function(err, res) {
       should.not.exist(err);
@@ -34,7 +33,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe('create accessKeys', function(done) {
+  describe('create accessKeys', function() {
     it('should create accessKeys successful', function(done) {
       request.post(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
@@ -52,7 +51,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe('add apps', function(done) {
+  describe('add apps', function() {
     it('should not add apps successful when appName is empty', function(done) {
       request.post(`/apps`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -92,7 +91,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe('list apps', function(done) {
+  describe('list apps', function() {
     it('should list apps successful', function(done) {
       request.get(`/apps`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -111,7 +110,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe('list apps all deployments', function(done) {
+  describe('list apps all deployments', function() {
     it('should list apps all deployments successful', function(done) {
       request.get(`/apps/${appName}/deployments`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -130,7 +129,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`create deployments ${testDeployment}`, function(done) {
+  describe(`create deployments ${testDeployment}`, function() {
     it('should create deployments successful', function(done) {
       request.post(`/apps/${appName}/deployments`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -158,7 +157,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`rename deployments ${testDeployment}`, function(done) {
+  describe(`rename deployments ${testDeployment}`, function() {
     it('should rename deployments successful', function(done) {
       request.patch(`/apps/${appName}/deployments/${testDeployment}`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -198,7 +197,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`delete deployments ${newTestDeployment}`, function(done) {
+  describe(`delete deployments ${newTestDeployment}`, function() {
     it('should delete deployments successful', function(done) {
       request.delete(`/apps/${appName}/deployments/${newTestDeployment}`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -226,7 +225,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`add collaborators`, function(done) {
+  describe(`add collaborators`, function() {
     it(`should not add collaborators successful when ${emailInvalid} invalid`, function(done) {
       request.post(`/apps/${appName}/collaborators/${emailInvalid}`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -240,7 +239,7 @@ describe('api/apps/apps.test.js', function() {
     });
 
     it('should add collaborators successful', function(done) {
-      request.post(`/apps/${appName}/collaborators/${email}`)
+      request.post(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -250,8 +249,8 @@ describe('api/apps/apps.test.js', function() {
       });
     });
 
-    it(`should not add collaborators successful when ${email} is already a collaborators`, function(done) {
-      request.post(`/apps/${appName}/collaborators/${email}`)
+    it(`should not add collaborators successful when ${TEST_COLABORATOR_ACCOUNT} is already a collaborators`, function(done) {
+      request.post(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -263,7 +262,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`list collaborators`, function(done) {
+  describe(`list collaborators`, function() {
     it('should list collaborators successful', function(done) {
       request.get(`/apps/${appName}/collaborators`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -278,7 +277,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`delete collaborators`, function(done) {
+  describe(`delete collaborators`, function() {
     it(`should not delete collaborators successful when ${emailInvalid} invalid`, function(done) {
       request.delete(`/apps/${appName}/collaborators/${emailInvalid}`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -292,7 +291,7 @@ describe('api/apps/apps.test.js', function() {
     });
 
     it(`should not delete collaborators successful when email is yourself`, function(done) {
-      request.delete(`/apps/${appName}/collaborators/${account}`)
+      request.delete(`/apps/${appName}/collaborators/${TEST_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -304,7 +303,7 @@ describe('api/apps/apps.test.js', function() {
     });
 
     it('should delete collaborators successful', function(done) {
-      request.delete(`/apps/${appName}/collaborators/${email}`)
+      request.delete(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -314,8 +313,8 @@ describe('api/apps/apps.test.js', function() {
       });
     });
 
-    it(`should not delete collaborators successful when ${email} is not a collaborators`, function(done) {
-      request.delete(`/apps/${appName}/collaborators/${email}`)
+    it(`should not delete collaborators successful when ${TEST_COLABORATOR_ACCOUNT} is not a collaborators`, function(done) {
+      request.delete(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -327,13 +326,13 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`transfer apps`, function(done) {
+  describe(`transfer apps`, function() {
     var authTokenOther;
     before(function(done){
       request.post('/auth/login')
       .send({
-        account: email,
-        password: password
+        account: TEST_COLABORATOR_ACCOUNT,
+        password: TEST_PASSWORD
       })
       .end(function(err, res) {
         should.not.exist(err);
@@ -357,7 +356,7 @@ describe('api/apps/apps.test.js', function() {
     });
 
     it(`should not transfer apps successful when email is yourself`, function(done) {
-      request.post(`/apps/${appName}/transfer/${account}`)
+      request.post(`/apps/${appName}/transfer/${TEST_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -369,7 +368,7 @@ describe('api/apps/apps.test.js', function() {
     });
 
     it(`should transfer apps successful`, function(done) {
-      request.post(`/apps/${appName}/transfer/${email}`)
+      request.post(`/apps/${appName}/transfer/${TEST_COLABORATOR_ACCOUNT}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
@@ -380,7 +379,7 @@ describe('api/apps/apps.test.js', function() {
     });
 
     it(`should transfer apps back successful`, function(done) {
-      request.post(`/apps/${appName}/transfer/${account}`)
+      request.post(`/apps/${appName}/transfer/${TEST_ACCOUNT}`)
       .set('Authorization', `Basic ${authTokenOther}`)
       .send()
       .end(function(err, res) {
@@ -391,7 +390,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`rename apps`, function(done) {
+  describe(`rename apps`, function() {
     it(`should not rename apps successful when new name is invalid`, function(done) {
       request.patch(`/apps/${appName}`)
       .set('Authorization', `Bearer ${bearerToken}`)
@@ -428,7 +427,7 @@ describe('api/apps/apps.test.js', function() {
     });
   });
 
-  describe(`delete apps`, function(done) {
+  describe(`delete apps`, function() {
     it(`should delete apps successful`, function(done) {
       request.delete(`/apps/${newAppName}`)
       .set('Authorization', `Bearer ${bearerToken}`)

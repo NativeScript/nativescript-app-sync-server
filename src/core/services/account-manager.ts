@@ -12,16 +12,14 @@ import { findByAppNameAndUid } from '~/queries'
 
 const log = log4js.getLogger("cps:AccountManager")
 
-export const collaboratorCan = function (uid, appName) {
-  return getCollaborator(uid, appName)
-    .then((data) => {
-      if (!data) {
-        log.debug(`collaboratorCan App ${appName} not exists.`);
-        throw new AppError(`App ${appName} not exists.`);
-      }
-      log.debug('collaboratorCan yes');
-      return data;
-    });
+export const collaboratorCan = async function (uid: number, appName: string) {
+  const data = await getCollaborator(uid, appName)
+  if (!data) {
+    log.debug(`collaboratorCan App ${appName} not exists.`);
+    throw new AppError(`App ${appName} not exists.`);
+  }
+  log.debug('collaboratorCan yes');
+  return data;
 };
 
 export const ownerCan = function (uid, appName) {
@@ -39,9 +37,7 @@ export const ownerCan = function (uid, appName) {
     });
 };
 
-export const getCollaborator = function (uid, appName) {
-  return findByAppNameAndUid(uid, appName);
-};
+export const getCollaborator = (uid: number, appName: string) => findByAppNameAndUid(uid, appName);
 
 export const findUserByEmail = function (email) {
   return models.Users.findOne({ where: { email: email } })

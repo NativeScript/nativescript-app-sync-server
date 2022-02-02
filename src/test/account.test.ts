@@ -1,27 +1,25 @@
-var app = require('../../../app');
-var request = require('supertest')(app);
-var should = require("should");
-var security = require('../../../core/utils/security');
-var factory = require('../../../core/utils/redis');
-var _ = require('lodash');
+import app from 'src/app'
+import supertest from 'supertest'
+import should from "should"
+import _ from 'lodash'
+import { TEST_ACCOUNT, TEST_PASSWORD } from './index.test'
+
+const request = supertest(app)
 
 describe('api/account/account.test.js', function() {
-  var account = '522539441@qq.com';
-  var password = '123456';
-
-  describe('user modules', function(done) {
+  describe('user modules', function() {
     var authToken;
     before(function(done){
       request.post('/auth/login')
       .send({
-        account: account,
-        password: password
+        account: TEST_ACCOUNT,
+        password: TEST_PASSWORD
       })
       .end(function(err, res) {
         should.not.exist(err);
         var rs = JSON.parse(res.text);
         rs.should.containEql({status:"OK"});
-        authToken = (new Buffer(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+        authToken = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
         done();
       });
     });
@@ -41,5 +39,4 @@ describe('api/account/account.test.js', function() {
     });
 
   });
-
 });

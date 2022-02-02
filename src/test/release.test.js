@@ -1,15 +1,16 @@
-var app = require('../../../app');
-var request = require('supertest')(app);
-var should = require("should");
-var path = require("path");
-var security = require('../../../core/utils/security');
-var factory = require('../../../core/utils/redis');
-var _ = require('lodash');
+import app from '../../app'
+import supertest from 'supertest'
+import should from "should"
+import path from "path"
+import _ from 'lodash'
+import { TEST_ACCOUNT, TEST_PASSWORD } from './index.test'
+
+const request = supertest(app)
+
 const SLEEP_TIME = 5000;
 
 describe('api/apps/release.test.js', function() {
-  var account = '522539441@qq.com';
-  var password = '123456';
+
   var authToken;
   var machineName = `Login-${Math.random()}`;
   var friendlyName = `Login-${Math.random()}`;
@@ -19,8 +20,8 @@ describe('api/apps/release.test.js', function() {
   before(function(done){
     request.post('/auth/login')
     .send({
-      account: account,
-      password: password
+      account: TEST_ACCOUNT,
+      password: TEST_PASSWORD
     })
     .end(function(err, res) {
       should.not.exist(err);

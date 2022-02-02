@@ -85,8 +85,5 @@ app.use('/account', middleware.checkToken, account);
 app.use('/apps', middleware.checkToken, apps);
 app.use('/users', users);
 
-const PORT = process.env.PORT || 5000
-app.listen(PORT, () => {
-  console.log(`App is running http://localhost:${PORT}`)
-})
+export default app
 

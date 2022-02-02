@@ -32,26 +32,23 @@ router.get('/', (req, res, next) => {
     });
 });
 
-router.get('/:appName/deployments',
-  (req, res, next) => {
-    const uid = req.users.id;
-    const appName = _.trim(req.params.appName);
+router.get('/:appName/deployments', async (req, res, next) => {
+  const uid = req.users.id;
+  const appName = _.trim(req.params.appName);
+  log.debug(`/:appName/deployments for app: ${appName}, user: ${uid}`)
+  try {
+    const col = await accountManager.collaboratorCan(uid, appName)
+    const data = await deployments.listDeloyments(col.appid);
 
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        return deployments.listDeloyments(col.appid);
-      })
-      .then((data) => {
-        res.send({ deployments: data });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
-  });
+    res.send({ deployments: data });
+  } catch (e) {
+    if (e instanceof AppError) {
+      res.status(406).send(e.message);
+    } else {
+      next(e);
+    }
+  }
+});
 
 router.get('/:appName/deployments/:deploymentName',
   (req, res, next) => {

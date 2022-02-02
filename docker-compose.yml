@@ -25,9 +25,10 @@ services:
   server:
       build:
         target: dev
-      command: ./node_modules/.bin/tsnd --rs --poll --respawn src/app.ts
+      command: ./node_modules/.bin/tsnd --rs --poll --respawn src/server.ts
       volumes:
         - ./src:/usr/src
+        - ./sql:/usr/sql
         - ./package.json:/usr/package.json
         - ./tsconfig.json:/usr/tsconfig.json
       ports:

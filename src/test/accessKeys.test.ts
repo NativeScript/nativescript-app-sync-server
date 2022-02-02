@@ -1,32 +1,31 @@
-var app = require('../../../app');
-var request = require('supertest')(app);
-var should = require("should");
-var security = require('../../../core/utils/security');
-var factory = require('../../../core/utils/redis');
-var _ = require('lodash');
+import app from 'src/app'
+import supertest from 'supertest'
+import should from "should"
+import _ from 'lodash'
+import { TEST_ACCOUNT, TEST_PASSWORD } from './index.test'
 
+const request = supertest(app)
 describe('api/accessKeys/accessKeys.test.js', function() {
-  var account = '522539441@qq.com';
-  var password = '123456';
+
   var authToken;
   var friendlyName = 'test';
   var newFriendlyName = 'newtest';
   before(function(done){
     request.post('/auth/login')
     .send({
-      account: account,
-      password: password
+      account: TEST_ACCOUNT,
+      password: TEST_PASSWORD
     })
     .end(function(err, res) {
       should.not.exist(err);
       var rs = JSON.parse(res.text);
       rs.should.containEql({status:"OK"});
-      authToken = (new Buffer(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+      authToken = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
       done();
     });
   });
 
-  describe('create accessKeys', function(done) {
+  describe('create accessKeys', function() {
     it('should create accessKeys successful', function(done) {
       request.post(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
@@ -55,7 +54,7 @@ describe('api/accessKeys/accessKeys.test.js', function() {
     });
   });
 
-  describe('list accessKeys', function(done) {
+  describe('list accessKeys', function() {
     it('should list accessKeys successful', function(done) {
       request.get(`/accessKeys`)
       .set('Authorization', `Basic ${authToken}`)
@@ -75,7 +74,7 @@ describe('api/accessKeys/accessKeys.test.js', function() {
     });
   });
 
-  describe('delete accessKeys', function(done) {
+  describe('delete accessKeys', function() {
     it('should delete accessKeys successful', function(done) {
       request.delete(`/accessKeys/${encodeURI(newFriendlyName)}`)
       .set('Authorization', `Basic ${authToken}`)
