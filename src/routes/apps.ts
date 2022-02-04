@@ -15,6 +15,7 @@ import log4js from 'log4js'
 import constName from '../core/constants'
 
 const log = log4js.getLogger("cps:apps");
+
 const router = express.Router();
 
 router.get('/', (req, res, next) => {

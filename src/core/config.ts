@@ -1,3 +1,7 @@
+import { Configuration as Log4JSConfig } from 'log4js'
+import { RedisClientOptions } from 'redis'
+import sequelize from 'sequelize'
+import { ConfigurationOptions } from 'aws-sdk'
 import os from 'os'
 
 export default {
@@ -8,7 +12,7 @@ export default {
     database: process.env.DB_NAME || "codepush",
     host: process.env.DB_HOST || "db",
     port: Number(process.env.DB_PORT || 3306),
-  },
+  } as sequelize.Options & sequelize.Logging,
   // Config for Amazon s3 (https://aws.amazon.com/cn/s3/) storage when storageType value is "s3".
   s3: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -17,7 +21,7 @@ export default {
     bucketName: process.env.BUCKET_NAME,
     region: process.env.REGION,
     downloadUrl: process.env.DOWNLOAD_URL, // binary files download host address.
-  },
+  } as ConfigurationOptions,
   // Config for local storage when storageType value is "local".
   local: {
     // Binary files storage dir, Do not use tmpdir and it's public download dir.
@@ -70,13 +74,13 @@ export default {
   // Config for redis (register module, tryLoginTimes module)
   redis: {
     url: process.env.REDIS_URL || '',
-  },
+  } as Omit<RedisClientOptions<never, any>, 'modules'>,
   log4js: {
     appenders: { console: { type: 'console' } },
     categories: {
       "default": { appenders: ['console'], level: 'all' },
       "startup": { appenders: ['console'], level: 'all' },
-      "http": { appenders: ['console'], level: 'all' }
-    }
-  }
+      "http": { appenders: ['console'], level: "all" }
+    },
+  } as Log4JSConfig
 }

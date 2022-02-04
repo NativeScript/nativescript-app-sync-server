@@ -80,7 +80,7 @@ export const sendEmail = ({
   const transporter = nodemailer.createTransport(
     new SMTPTransport({
       host,
-      port,
+      port: Number(port),
       auth,
       secure
     })

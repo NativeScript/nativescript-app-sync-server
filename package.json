@@ -33,7 +33,7 @@
     "start": "node ./bin/www",
     "init": "node ./bin/db init",
     "upgrade": "node ./bin/db upgrade",
-    "test": "IS_TEST=true ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
+    "test": "NODE_ENV=test ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
     "coverage": "make coverage"
   },
   "dependencies": {
@@ -41,6 +41,7 @@
     "@types/express": "^4.17.13",
     "@types/formidable": "^2.0.4",
     "@types/jsonwebtoken": "^8.5.8",
+    "@types/nodemailer": "^6.4.4",
     "@types/recursive-readdir": "^2.2.0",
     "aws-sdk": "^2.1064.0",
     "bcryptjs": "^2.4.3",
