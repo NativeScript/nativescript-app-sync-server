@@ -1,5 +1,5 @@
 import {
-  DataTypes, Model, Optional
+  DataTypes, Optional, ModelDefined
 } from "sequelize";
 import { sequelize } from "../db";
 
@@ -15,24 +15,27 @@ interface AppAttributes {
 }
 
 interface AppCreationAttributes extends Optional<AppAttributes, "id" | "is_use_diff_text"> { }
-interface AppInstance extends Model<AppAttributes, AppCreationAttributes>,
-  AppAttributes { }
 
-const AppModel = sequelize.define<AppInstance>("Apps", {
-  id: {
-    type: DataTypes.INTEGER(),
-    allowNull: false,
-    autoIncrement: true,
-    primaryKey: true,
-  },
-  name: DataTypes.STRING(50),
-  uid: DataTypes.BIGINT({ length: 8 }),
-  os: DataTypes.TINYINT({ length: 3 }),
-  platform: DataTypes.TINYINT({ length: 3 }),
-  is_use_diff_text: DataTypes.TINYINT({ length: 3 }),
-  created_at: DataTypes.DATE(),
-  updated_at: DataTypes.DATE(),
-}, {
+const AppModel: ModelDefined<
+AppAttributes,
+AppCreationAttributes
+> = sequelize.define(
+  "Apps",
+  {
+    id: {
+      type: DataTypes.INTEGER(),
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    name: DataTypes.STRING(50),
+    uid: DataTypes.BIGINT({ length: 8 }),
+    os: DataTypes.TINYINT({ length: 3 }),
+    platform: DataTypes.TINYINT({ length: 3 }),
+    is_use_diff_text: DataTypes.TINYINT({ length: 3 }),
+    created_at: DataTypes.DATE(),
+    updated_at: DataTypes.DATE(),
+  }, {
   tableName: 'apps',
   underscored: true,
   paranoid: true,
