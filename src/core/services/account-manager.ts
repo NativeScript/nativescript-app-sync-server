@@ -43,7 +43,7 @@ export const findUserByEmail = function (email) {
   return models.Users.findOne({ where: { email: email } })
     .then((data) => {
       if (_.isEmpty(data)) {
-        throw new AppError(email + " does not exist.");
+        throw new AppError(email + " does not exist");
       } else {
         return data;
       }

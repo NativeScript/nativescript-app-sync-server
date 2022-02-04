@@ -1,8 +1,8 @@
-import app from '../../app'
+import app from '../app'
 import supertest from 'supertest'
 import should from "should"
 import _ from 'lodash'
-import { TEST_ACCOUNT, TEST_PASSWORD, TEST_COLABORATOR_ACCOUNT } from '../index.test'
+import { TEST_ACCOUNT, TEST_PASSWORD, TEST_COLABORATOR_ACCOUNT } from './index.test'
 
 const request = supertest(app)
 
@@ -226,14 +226,14 @@ describe('api/apps/apps.test.js', function() {
   });
 
   describe(`add collaborators`, function() {
-    it(`should not add collaborators successful when ${emailInvalid} invalid`, function(done) {
+    it(`should not add collaborators successful when email invalid`, function(done) {
       request.post(`/apps/${appName}/collaborators/${emailInvalid}`)
       .set('Authorization', `Bearer ${bearerToken}`)
       .send()
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(406);
-        res.text.should.equal(`Invalid Email!`);
+        res.text.should.equal(`${emailInvalid} does not exist`);
         done();
       });
     });
@@ -285,7 +285,7 @@ describe('api/apps/apps.test.js', function() {
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(406);
-        res.text.should.equal(`Invalid Email!`);
+        res.text.should.equal(`${emailInvalid} does not exist`);
         done();
       });
     });
@@ -350,7 +350,7 @@ describe('api/apps/apps.test.js', function() {
       .end(function(err, res) {
         should.not.exist(err);
         res.status.should.equal(406);
-        res.text.should.equal(`Invalid Email!`);
+        res.text.should.equal(`${emailInvalid} does not exist`);
         done();
       });
     });

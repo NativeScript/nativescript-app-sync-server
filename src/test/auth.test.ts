@@ -69,15 +69,4 @@ describe('api/auth/test.js', function () {
         });
     });
   });
-
-  describe('link', function () {
-    it('should link successful', function (done) {
-      request.get('/auth/link')
-        .end(function (err, res) {
-          should.not.exist(err);
-          res.headers.location.should.equal('/auth/login');
-          done();
-        });
-    });
-  });
 })

@@ -1,4 +1,6 @@
-import { Optional, DataTypes, ModelDefined } from "sequelize";
+import {
+  Sequelize, DataTypes, Model, BuildOptions, Optional
+} from "sequelize";
 import { sequelize } from "../db";
 
 interface DeploymentsHistoryAttributes {
@@ -9,23 +11,20 @@ interface DeploymentsHistoryAttributes {
 }
 
 interface DeploymentsHistoryCreationAttributes extends Optional<DeploymentsHistoryAttributes, "id"> { }
+interface DeploymentsHistoryInstance extends Model<DeploymentsHistoryAttributes, DeploymentsHistoryCreationAttributes>,
+  DeploymentsHistoryAttributes { }
 
-const DeploymentsHistoryModel: ModelDefined<
-  DeploymentsHistoryAttributes,
-  DeploymentsHistoryCreationAttributes
-> = sequelize.define(
-  "DeploymentsHistory",
-  {
-    id: {
-      type: DataTypes.INTEGER({ length: 11 }),
-      allowNull: false,
-      autoIncrement: true,
-      primaryKey: true
-    },
-    deployment_id: DataTypes.INTEGER({ length: 11 }),
-    package_id: DataTypes.INTEGER({ length: 10 }),
-    created_at: DataTypes.DATE()
-  }, {
+const DeploymentsHistoryModel = sequelize.define<DeploymentsHistoryInstance>("DeploymentsHistory", {
+  id: {
+    type: DataTypes.INTEGER({ length: 11 }),
+    allowNull: false,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  deployment_id: DataTypes.INTEGER({ length: 11 }),
+  package_id: DataTypes.INTEGER({ length: 10 }),
+  created_at: DataTypes.DATE()
+}, {
   tableName: 'deployments_history',
   underscored: true,
   updatedAt: false,

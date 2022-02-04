@@ -10,7 +10,7 @@ const request = supertest(app)
 
 describe('api/users/users.test.js', function () {
   const accountExist = TEST_ACCOUNT;
-  const account = TEST_ACCOUNT;
+  const account = 'randomNewUser@nativescript.com';
   const password = TEST_PASSWORD;
   const registerKey = `REGISTER_CODE_${security.md5(account)}`;
   const newPassword = '123456';
@@ -27,7 +27,7 @@ describe('api/users/users.test.js', function () {
     });
 
     it('should not exists account when sign up', function (done) {
-      request.get(`/users/exists?email=${account}`)
+      request.get(`/users/exists?email=${encodeURI('newuser1@nativescript.com')}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -54,7 +54,7 @@ describe('api/users/users.test.js', function () {
         .send({ email: accountExist })
         .expect(200)
         .expect((res) => {
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `"${accountExist}" Already registered, please change your email to register` });
+          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `"${accountExist}" already registered` });
         })
         .end(done)
     });
@@ -75,14 +75,15 @@ describe('api/users/users.test.js', function () {
     const token = 'invalid token';
     const account2 = '522539441@qq.com2';
     let storageToken;
-    before(async function (done) {
-      var client = await factory.getRedisClient();
-      client.get(registerKey)
+    before(async function () {
+      const client = await factory.getRedisClient();
+      return client.get(registerKey)
         .then(function (t) {
           storageToken = t;
-          done();
         })
-        .finally(() => client.quit());
+        .finally(() => {
+          client.quit()
+        });
     });
 
     it('should not check register code successful when email already exists', function (done) {
@@ -90,7 +91,7 @@ describe('api/users/users.test.js', function () {
         .send()
         .end(function (err, res) {
           should.not.exist(err);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `"${accountExist}" Already registered, please change your email to register` });
+          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `"${accountExist}" is already registered` });
           done();
         });
     });
@@ -100,7 +101,7 @@ describe('api/users/users.test.js', function () {
         .send()
         .end(function (err, res) {
           should.not.exist(err);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `The verification code has expired, please get it again` });
+          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `The verification code has expired, grab a new one!` });
           done();
         });
     });
@@ -110,7 +111,7 @@ describe('api/users/users.test.js', function () {
         .send()
         .end(function (err, res) {
           should.not.exist(err);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `The verification code you entered is incorrect, please try again` });
+          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `Incorrect verification code, please enter it again.` });
           done();
         });
     });
@@ -129,24 +130,25 @@ describe('api/users/users.test.js', function () {
 
   describe('sign up', function () {
     let storageToken;
-    before(async function (done) {
+    before(async function () {
       const client = await factory.getRedisClient();
-      client.get(registerKey)
+      return client.get(registerKey)
         .then(function (t) {
           storageToken = t;
-          done();
         })
-        .finally(() => client.quit());
+        .finally(() => {
+          client.quit()
+        });
     });
 
     it('should not sign up successful when password length invalid', function (done) {
       request.post(`/users`)
         .send({ email: account, password: '1234', token: storageToken })
-        .end(function (err, res) {
-          should.not.exist(err);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `Please enter a password of 6 to 20 characters in length` });
-          done();
-        });
+        .expect(200)
+        .expect((result) => {
+          const res = JSON.parse(result.text)
+          res.should.containEql({ status: "ERROR", message: `Please enter a password of 6 to 20 digits` });
+        }).end(done)
     });
 
     it('should sign up successful', function (done) {
@@ -172,7 +174,7 @@ describe('api/users/users.test.js', function () {
           should.not.exist(err);
           const rs = JSON.parse(res.text);
           rs.should.containEql({ status: "OK" });
-          authToken = (new Buffer(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+          authToken = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
           done();
         });
     });
@@ -197,7 +199,7 @@ describe('api/users/users.test.js', function () {
         .end(function (err, res) {
           should.not.exist(err);
           res.status.should.equal(200);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `The old password you entered is incorrect, please try again` });
+          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `The old password is incorrect, please try again` });
           done();
         });
     });
@@ -209,7 +211,7 @@ describe('api/users/users.test.js', function () {
         .end(function (err, res) {
           should.not.exist(err);
           res.status.should.equal(200);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `Please enter a new password with a length of 6 to 20 characters` });
+          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `Please enter a password between 6 and 20 characters` });
           done();
         });
     });
@@ -239,7 +241,7 @@ describe('api/users/users.test.js', function () {
           should.not.exist(err);
           const rs = JSON.parse(res.text);
           rs.should.containEql({ status: "OK" });
-          authToken = (new Buffer(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+          authToken = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
           done();
         });
     });

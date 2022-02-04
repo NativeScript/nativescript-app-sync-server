@@ -1,4 +1,4 @@
-import { Optional, DataTypes, ModelDefined } from "sequelize";
+import { Optional, Model, Sequelize, DataTypes } from "sequelize";
 import { sequelize } from "../db";
 
 export interface ICollaboratorAttributes {
@@ -10,26 +10,31 @@ export interface ICollaboratorAttributes {
   updated_at?: Date;
 }
 
-interface ICollaboratorCreationAttributes extends Optional<ICollaboratorAttributes, "id"> { }
+export interface IF_UserAttributes extends Model {
+  readonly username: string;
+  readonly email: string;
+  readonly password: string;
+  readonly role: string;
+}
 
-const CollaboratorsModel: ModelDefined<
-  ICollaboratorAttributes,
-  ICollaboratorCreationAttributes
-> = sequelize.define(
-  "Collaborators",
-  {
-    id: {
-      type: DataTypes.BIGINT({ length: 20 }),
-      allowNull: false,
-      autoIncrement: true,
-      primaryKey: true
-    },
-    appid: DataTypes.INTEGER({ length: 10 }),
-    uid: DataTypes.BIGINT({ length: 20 }),
-    roles: DataTypes.STRING(20),
-    created_at: DataTypes.DATE(),
-    updated_at: DataTypes.DATE(),
-  }, {
+interface ICollaboratorCreationAttributes extends Optional<ICollaboratorAttributes, "id"> { }
+export interface ICollaboratorInstance extends Model<ICollaboratorAttributes, ICollaboratorCreationAttributes>,
+  ICollaboratorAttributes { }
+
+const CollaboratorsModel = sequelize.define<ICollaboratorInstance>("Collaborators", {
+  id: {
+    type: DataTypes.BIGINT({ length: 20 }),
+    allowNull: false,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  appid: DataTypes.INTEGER({ length: 10 }),
+  uid: DataTypes.BIGINT({ length: 20 }),
+  roles: DataTypes.STRING(20),
+  created_at: DataTypes.DATE(),
+  updated_at: DataTypes.DATE(),
+}, {
+
   tableName: 'collaborators',
   underscored: true,
   paranoid: true

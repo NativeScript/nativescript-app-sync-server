@@ -464,9 +464,9 @@ router.get('/:appName/collaborators',
 
 router.post('/:appName/collaborators/:email',
   function (req, res, next) {
-    var appName = _.trim(req.params.appName)
-    var email = _.trim(req.params.email)
-    var uid = req.users.id
+    const appName = _.trim(req.params.appName)
+    const email = _.trim(req.params.email)
+    const uid = req.users.id
     if (!validator.isEmail(email)) {
       return res.status(406).send("Invalid Email!")
     }

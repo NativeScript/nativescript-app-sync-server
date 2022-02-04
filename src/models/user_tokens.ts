@@ -1,4 +1,6 @@
-import { Optional, DataTypes, ModelDefined } from "sequelize";
+import {
+  DataTypes, Model, Optional
+} from "sequelize";
 import { sequelize } from "../db";
 
 interface UserTokensAttributes {
@@ -15,29 +17,26 @@ interface UserTokensAttributes {
 }
 
 interface UserTokensCreationAttributes extends Optional<UserTokensAttributes, "id" | "is_session"> { }
+interface UserTokensInstance extends Model<UserTokensAttributes, UserTokensCreationAttributes>,
+  UserTokensAttributes { }
 
-const UserTokensModel: ModelDefined<
-  UserTokensAttributes,
-  UserTokensCreationAttributes
-> = sequelize.define(
-  "UserTokens",
-  {
-    id: {
-      type: DataTypes.BIGINT({ length: 20 }),
-      allowNull: false,
-      autoIncrement: true,
-      primaryKey: true
-    },
-    uid: DataTypes.BIGINT({ length: 20 }),
-    name: DataTypes.STRING(50),
-    tokens: DataTypes.STRING(64),
-    description: DataTypes.STRING(500),
-    is_session: DataTypes.TINYINT({ length: 3 }),
-    created_by: DataTypes.STRING(64),
-    created_at: DataTypes.DATE(),
-    expires_at: DataTypes.DATE(),
-    deleted_at: DataTypes.DATE()
-  }, {
+const UserTokensModel = sequelize.define<UserTokensInstance>("UserTokens", {
+  id: {
+    type: DataTypes.BIGINT({ length: 20 }),
+    allowNull: false,
+    autoIncrement: true,
+    primaryKey: true
+  },
+  uid: DataTypes.BIGINT({ length: 20 }),
+  name: DataTypes.STRING(50),
+  tokens: DataTypes.STRING(64),
+  description: DataTypes.STRING(500),
+  is_session: DataTypes.TINYINT({ length: 3 }),
+  created_by: DataTypes.STRING(64),
+  created_at: DataTypes.DATE(),
+  expires_at: DataTypes.DATE(),
+  deleted_at: DataTypes.DATE()
+}, {
   updatedAt: false,
   tableName: 'user_tokens',
   underscored: true,

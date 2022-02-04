@@ -33,7 +33,7 @@
     "start": "node ./bin/www",
     "init": "node ./bin/db init",
     "upgrade": "node ./bin/db upgrade",
-    "test": "ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
+    "test": "IS_TEST=true ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
     "coverage": "make coverage"
   },
   "dependencies": {
@@ -73,6 +73,7 @@
     "redis": "^4.0.2",
     "request": "^2.72.0",
     "sequelize": "^6.14.1",
+    "sequelize-auto-migrations": "^1.0.3",
     "serve-favicon": "^2.5.0",
     "typescript": "^4.5.5",
     "validator": "^13.7.0",
