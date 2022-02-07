@@ -82,7 +82,7 @@ export const isMatchPackageHash = async function (packageId: number, packageHash
     return Promise.resolve(false);
   }
   const data = await models.Packages.findByPk(packageId)
-  
+
   if (data && _.eq(data.get('package_hash'), packageHash)) {
     log.debug(`isMatchPackageHash data:`, data.get());
     log.debug(`isMatchPackageHash packageHash exist`);
@@ -349,42 +349,45 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
   log.debug(`releasePackage generate an random dir path: ${directoryPath}`);
 
   try {
-    const [blobHash] = await Promise.all([
-      security.qetag(filePath),
-      common.createEmptyFolder(directoryPath)
-        .then(() => {
-          return common.unzipFile(filePath, directoryPath)
-        })
-    ])
+    await security.qetag(filePath)
+    await common.createEmptyFolder(directoryPath)
+    const blobHash = await common.unzipFile(filePath, directoryPath)
 
     const type = await security.uploadPackageType(directoryPath)
-
     const appInfo = await models.Apps.findByPk(appId)
-    if (appInfo && type > 0 && appInfo.os > 0 && appInfo.os != type) {
-      var e = new AppError("it must be publish it by ios type");
+    const appOS = Number(appInfo?.os)
+    if (type > 0 && appOS > 0 && appOS != type) {
+      const e = new AppError("it must be publish it by ios type");
       log.debug(e);
       throw e;
     } else {
-      //Do not verify
       log.debug(`Unknown package type:`, type, ',db os:', appInfo?.os);
     }
 
     const dataCenter = await dataCenterManager.storePackage(directoryPath)
-    const packageHash = dataCenter.packageHash;
-    const manifestFile = dataCenter.manifestFilePath;
+    const packageHash = dataCenter.packageHash
+    const manifestFile = dataCenter.manifestFilePath
 
     const deploymentsVersions = await models.DeploymentsVersions.findOne({ where: { deployment_id: deploymentId, app_version: appVersion } })
-    const isExist = !deploymentsVersions ? false : isMatchPackageHash(deploymentsVersions.get('current_package_id'), packageHash)
+
+    if (!deploymentsVersions) {
+      return false;
+    }
+
+    const isExist = await isMatchPackageHash(deploymentsVersions.get('current_package_id'), packageHash);
+
     if (isExist) {
-      const e = new AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
+      var e = new AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
       log.debug(e.message);
       throw e;
     }
+
     const manifestHash = await security.qetag(manifestFile);
     await Promise.all([
       common.uploadFileToStorage(manifestHash, manifestFile),
       common.uploadFileToStorage(blobHash, filePath)
     ])
+
 
     const stats = fs.statSync(filePath);
     const params = {
@@ -398,10 +401,10 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
       min_version: versionInfo[1],
       max_version: versionInfo[2],
     }
-
     await createPackage(deploymentId, appVersion, packageHash, manifestHash, blobHash, params);
   } finally {
-    return common.deleteFolderSync(directoryPathParent)
+    common.deleteFolderSync(directoryPathParent)
+    return
   }
 };
 

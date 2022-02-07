@@ -1,4 +1,3 @@
-import Promise from 'bluebird'
 import fs from "fs"
 import fsextra from "fs-extra"
 import extract from 'extract-zip'
@@ -135,7 +134,7 @@ export const copy = function (sourceDst, targertDst) {
         reject(err);
       } else {
         log.debug(`copy success sourceDst:${sourceDst} targertDst:${targertDst}`);
-        resolve();
+        resolve(true);
       }
     });
   });
@@ -149,7 +148,7 @@ export const move = function (sourceDst, targertDst) {
         reject(err);
       } else {
         log.debug(`move success sourceDst:${sourceDst} targertDst:${targertDst}`);
-        resolve();
+        resolve(true);
       }
     });
   });
@@ -195,25 +194,23 @@ export const createEmptyFolderSync = function (folderPath) {
   return fsextra.mkdirsSync(folderPath);
 };
 
-export const unzipFile = function (zipFile, outputPath) {
-  return new Promise((resolve, reject) => {
-    try {
-      log.debug(`unzipFile check zipFile ${zipFile} fs.constants.R_OK`);
-      fs.accessSync(zipFile, fs.constants.R_OK);
-      log.debug(`Pass unzipFile file ${zipFile}`);
-    } catch (e: any) {
-      log.error(e);
-      return reject(new AppError(e.message))
-    }
-    extract(zipFile, { dir: outputPath }).then(function (res) {
-      log.debug(`unzipFile success`);
-      resolve(outputPath);
-    }).catch((err) => {
-      if (err)
-        log.error(err);
-      reject(new AppError(`it's not a zipFile`))
-    })
-  });
+export const unzipFile = async (zipFile: string, outputPath: string) => {
+  try {
+    log.debug(`unzipFile check zipFile ${zipFile} fs.constants.R_OK`);
+    fs.accessSync(zipFile, fs.constants.R_OK);
+    log.debug(`Pass unzipFile file ${zipFile}`);
+  } catch (e: any) {
+    log.error(e);
+    throw new AppError(e.message)
+  }
+  return extract(zipFile, { dir: outputPath }).then(function (res) {
+    log.debug(`unzipFile success`);
+    return outputPath
+  }).catch((err) => {
+    if (err)
+      log.error(err);
+    throw new AppError(`it's not a zipFile`)
+  })
 };
 
 export const uploadFileToStorage = function (key, filePath) {

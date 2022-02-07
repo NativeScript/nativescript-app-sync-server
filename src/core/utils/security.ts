@@ -114,7 +114,7 @@ export const sha256AllFiles = function (files) {
   });
 }
 
-export const uploadPackageType = async function (directoryPath) {
+export const uploadPackageType = async function (directoryPath: string) {
   try {
     const files = await recursive(directoryPath)
     if (files.length == 0) {
@@ -136,8 +136,6 @@ export const uploadPackageType = async function (directoryPath) {
     log.error(new AppError(e.error));
     throw new AppError(e.message)
   }
-
-
 }
 
 // some files are ignored in calc hash in client sdk
