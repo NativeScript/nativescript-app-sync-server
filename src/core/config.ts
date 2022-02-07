@@ -12,7 +12,8 @@ export default {
     database: process.env.DB_NAME || "codepush",
     host: process.env.DB_HOST || "db",
     port: Number(process.env.DB_PORT || 3306),
-  } as sequelize.Options & sequelize.Logging,
+    dialect: 'mysql'
+  } as sequelize.Options,
   // Config for Amazon s3 (https://aws.amazon.com/cn/s3/) storage when storageType value is "s3".
   s3: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
