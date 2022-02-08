@@ -79,7 +79,7 @@ export const createDeploymentsVersionIfNotExist = async function (deploymentId: 
 export const isMatchPackageHash = async function (packageId: number, packageHash: string) {
   if (_.lt(packageId, 0)) {
     log.debug(`isMatchPackageHash packageId is 0`);
-    return Promise.resolve(false);
+    return false
   }
   const data = await models.Packages.findByPk(packageId)
 
@@ -337,8 +337,9 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
   const versionInfo = common.validatorVersion(appVersion);
   if (!versionInfo[0]) {
     log.debug(`releasePackage targetBinaryVersion ${appVersion} not support.`);
-    return Promise.reject(new AppError(`targetBinaryVersion ${appVersion} not support.`))
+    throw new AppError(`targetBinaryVersion ${appVersion} not support.`)
   }
+
   const description = packageInfo.description; //description
   const isDisabled = packageInfo.isDisabled; //whether to download now
   const rollout = packageInfo.rollout; //grayscale percentage
@@ -347,7 +348,6 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
   const directoryPathParent = path.join(tmpDir, 'codepuh_' + security.randToken(32));
   const directoryPath = path.join(directoryPathParent, 'current');
   log.debug(`releasePackage generate an random dir path: ${directoryPath}`);
-
   try {
     await security.qetag(filePath)
     await common.createEmptyFolder(directoryPath)
@@ -396,10 +396,10 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
       min_version: versionInfo[1],
       max_version: versionInfo[2],
     }
-    await createPackage(deploymentId, appVersion, packageHash, manifestHash, blobHash, params);
-  } finally {
+    return await createPackage(deploymentId, appVersion, packageHash, manifestHash, blobHash, params);
+  }
+  finally {
     common.deleteFolderSync(directoryPathParent)
-    return
   }
 };
 

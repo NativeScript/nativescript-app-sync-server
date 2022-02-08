@@ -251,43 +251,48 @@ router.post('/:appName/deployments/:deploymentName/release',
     const appName = _.trim(req.params.appName);
     const deploymentName = _.trim(req.params.deploymentName);
     const uid = req.users.id;
-    const col = await accountManager.collaboratorCan(uid, appName).catch((e) => {
+
+    const col = await accountManager.collaboratorCan(uid, appName)
+    log.debug(col);
+    const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
+    if (!deploymentInfo) {
+      log.debug(`does not find the deployment`);
+      throw new AppError("does not find the deployment");
+    }
+
+    try {
+
+
+      const data = await packageManager.parseReqFile(req)
+      if (data.package.mimetype != "application/zip") {
+        log.debug(`upload file type is invlidate`, data.package);
+        throw new AppError("upload file type is invalidate");
+      }
+      log.debug('packageInfo:', data.packageInfo);
+
+      const packages = await packageManager.releasePackage(deploymentInfo.appid, deploymentInfo.id, data.packageInfo, data.package.filepath, uid)
+        .finally(() => {
+          common.deleteFolderSync(data.package.filepath);
+        });
+
+
+      if (packages) {
+        await packageManager.createDiffPackagesByLastNums(deploymentInfo.appid, packages, _.get(config, 'common.diffNums', 1))
+          .catch((e) => {
+            log.error(e);
+          });
+      }
+      //clear cache if exists.
+      if (_.get(config, 'common.updateCheckCache', false) !== false) {
+        await clientManager.clearUpdateCheckCache(deploymentInfo.deployment_key, '*', '*', '*');
+      }
+    } catch (e) {
       if (e instanceof AppError) {
         res.status(406).send(e.message);
       } else {
         next(e);
       }
-    })
-
-    log.debug(col);
-    const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col?.appid)
-    if (_.isEmpty(deploymentInfo)) {
-      log.debug(`does not find the deployment`);
-      throw new AppError("does not find the deployment");
     }
-    const data = await packageManager.parseReqFile(req)
-   
-    if (data.package.mimetype != "application/zip") {
-      log.debug(`upload file type is invlidate`, data.package);
-      throw new AppError("upload file type is invalidate");
-    }
-    log.debug('packageInfo:', data.packageInfo);
-    const packages = await packageManager.releasePackage(Number(deploymentInfo?.appid), Number(deploymentInfo?.id), data.packageInfo, data.package.filepath, uid)
-      .finally(() => {
-        common.deleteFolderSync(data.package.filepath);
-      });
-
-    if (packages) {
-      packageManager.createDiffPackagesByLastNums(deploymentInfo?.appid, packages, _.get(config, 'common.diffNums', 1))
-        .catch((e) => {
-          log.error(e);
-        });
-    }
-    //clear cache if exists.
-    if (_.get(config, 'common.updateCheckCache', false) !== false) {
-      clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
-    }
-
     res.send('{"msg": "succeed"}');
   });
 
