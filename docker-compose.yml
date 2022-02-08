@@ -25,7 +25,7 @@ services:
   server:
       build:
         target: dev
-      command: ./node_modules/.bin/tsnd --rs --poll --respawn src/server.ts
+      command: ./node_modules/.bin/tsnd --rs --poll -r tsconfig-paths/register --respawn src/server.ts
       volumes:
         - ./src:/usr/src
         - ./sql:/usr/sql

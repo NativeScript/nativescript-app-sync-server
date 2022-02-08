@@ -1,7 +1,8 @@
 {
     "compilerOptions": {
-        "baseUrl": ".",
+        "baseUrl": "./",
         "target": "es6",
+        "moduleResolution": "node",
         "module": "commonjs",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
@@ -18,18 +19,16 @@
         "allowJs": true,
         "typeRoots": [
             "./src/types",
-            "./node_modules/@types",
+            "./node_modules/@types"
         ],
         "paths": {
-            "~/*": [
-                "src/*"
-            ]
+            "~/*": ["src/*"]
         }
     },
     "include": [
         "src/**/*"
     ],
     "exclude": [
-        "./node_modules"
+        "node_modules"
     ]
 }
