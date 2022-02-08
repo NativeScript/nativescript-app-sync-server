@@ -369,12 +369,7 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
     const manifestFile = dataCenter.manifestFilePath
 
     const deploymentsVersions = await models.DeploymentsVersions.findOne({ where: { deployment_id: deploymentId, app_version: appVersion } })
-
-    if (!deploymentsVersions) {
-      return false;
-    }
-
-    const isExist = await isMatchPackageHash(deploymentsVersions.get('current_package_id'), packageHash);
+    const isExist = deploymentsVersions ? await isMatchPackageHash(deploymentsVersions.get('current_package_id'), packageHash) : false
 
     if (isExist) {
       var e = new AppError("The uploaded package is identical to the contents of the specified deployment's current release.");
@@ -513,7 +508,7 @@ export const promotePackage = async function (sourceDeploymentInfo, destDeployme
     }
   })
 
-  const isExist = !destDeploymentsVersions ? false : isMatchPackageHash(destDeploymentsVersions.get('current_package_id'), sourcePack.package_hash);
+  const isExist = destDeploymentsVersions ? isMatchPackageHash(destDeploymentsVersions.get('current_package_id'), sourcePack.package_hash) : false
 
   if (isExist) {
     throw new AppError("The uploaded package is identical to the contents of the specified deployment's current release.");

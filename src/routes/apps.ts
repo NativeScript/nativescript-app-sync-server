@@ -266,6 +266,7 @@ router.post('/:appName/deployments/:deploymentName/release',
       throw new AppError("does not find the deployment");
     }
     const data = await packageManager.parseReqFile(req)
+   
     if (data.package.mimetype != "application/zip") {
       log.debug(`upload file type is invlidate`, data.package);
       throw new AppError("upload file type is invalidate");
@@ -275,21 +276,16 @@ router.post('/:appName/deployments/:deploymentName/release',
       .finally(() => {
         common.deleteFolderSync(data.package.filepath);
       });
+
     if (packages) {
-      await bluebird.Promise.delay(1000)
-        .then(() => {
-          packageManager.createDiffPackagesByLastNums(deploymentInfo?.appid, packages, _.get(config, 'common.diffNums', 1))
-            .catch((e) => {
-              log.error(e);
-            });
+      packageManager.createDiffPackagesByLastNums(deploymentInfo?.appid, packages, _.get(config, 'common.diffNums', 1))
+        .catch((e) => {
+          log.error(e);
         });
     }
     //clear cache if exists.
     if (_.get(config, 'common.updateCheckCache', false) !== false) {
-      await bluebird.Promise.delay(2500)
-        .then(() => {
-          clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
-        });
+      clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
     }
 
     res.send('{"msg": "succeed"}');
