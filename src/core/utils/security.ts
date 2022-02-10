@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import * as fs from 'fs'
 import qeTag from '../utils/qetag'
-import _ from 'lodash'
+import _, { toPairs } from 'lodash'
+import { mapObjIndexed, mergeAll } from 'ramda'
 import log4js from 'log4js'
 import randtoken from 'rand-token'
 import recursive from "recursive-readdir"
@@ -18,31 +19,31 @@ randtoken.generator({
   source: crypto.randomBytes
 })
 
-export const md5 = function (str) {
-  var md5sum = crypto.createHash('md5');
+export const md5 = function (str: string) {
+  const md5sum = crypto.createHash('md5');
   md5sum.update(str);
   str = md5sum.digest('hex');
   return str;
 }
 
-export const passwordHashSync = function (password) {
+export const passwordHashSync = function (password: string) {
   return bcrypt.hashSync(password, bcrypt.genSaltSync(12));
 }
 
-export const passwordVerifySync = function (password, hash) {
+export const passwordVerifySync = function (password: string, hash: string) {
   return bcrypt.compareSync(password, hash)
 }
 
-export const randToken = function (num) {
+export const randToken = function (num: number) {
   return randtoken.generate(num);
 }
 
-export const parseToken = function (token) {
-  return { identical: token.substr(-9, 9), token: token.substr(0, 28) }
+export const parseToken = function (token: string) {
+  return { identical: token.substring(-9, 9), token: token.substring(0, 28) }
 }
 
-export const fileSha256 = function (file) {
-  return new Promise((resolve, reject) => {
+export const fileSha256 = function (file: fs.PathLike) {
+  return new Promise<string>((resolve, reject) => {
     var rs = fs.createReadStream(file);
     var hash = crypto.createHash('sha256');
     rs.on('data', hash.update.bind(hash));
@@ -55,13 +56,13 @@ export const fileSha256 = function (file) {
   });
 }
 
-export const stringSha256Sync = function (contents) {
+export const stringSha256Sync = function (contents: crypto.BinaryLike) {
   var sha256 = crypto.createHash('sha256');
   sha256.update(contents);
   return sha256.digest('hex');
 }
 
-export const packageHashSync = function (jsonData) {
+export const packageHashSync = function (jsonData: { [key: string]: unknown }) {
   var sortedArr = sortJsonToArr(jsonData);
   var manifestData = _.filter(sortedArr, (v) => {
     return !isPackageHashIgnored(v.path);
@@ -76,7 +77,7 @@ export const packageHashSync = function (jsonData) {
 }
 
 // The parameter is buffer or readableStream or file path
-export const qetag = function (buffer): Promise<string> {
+export const qetag = function (buffer: fs.PathLike): Promise<string> {
   if (typeof buffer === 'string') {
     try {
       log.debug(`Check upload file ${buffer} fs.R_OK`);
@@ -96,22 +97,14 @@ export const qetag = function (buffer): Promise<string> {
   });
 }
 
-export const sha256AllFiles = function (files) {
-  return new Promise((resolve, reject) => {
-    var results = {};
-    var length = files.length;
-    var count = 0;
-    files.forEach((file) => {
-      fileSha256(file)
-        .then((hash) => {
-          results[file] = hash;
-          count++;
-          if (count == length) {
-            resolve(results);
-          }
-        });
-    });
-  });
+/**
+ * @function sha256AllFiles
+ * @param filePaths 
+ * @returns {} - { [filepath]: hash } 
+ */
+export const sha256AllFiles = async (filePaths: string[]) => {
+  const hashedFiles = await Promise.all(filePaths.map(async filePath => ({ [filePath]: await fileSha256(filePath) })))
+  return mergeAll(hashedFiles)
 }
 
 export const uploadPackageType = async function (directoryPath: string) {
@@ -120,7 +113,7 @@ export const uploadPackageType = async function (directoryPath: string) {
     if (files.length == 0) {
       log.debug(`uploadPackageType empty files`);
       throw new AppError("empty files")
-    } 
+    }
     const AREGEX = /android\.bundle/
     const AREGEX_IOS = /main\.jsbundle/
 
@@ -140,7 +133,7 @@ export const uploadPackageType = async function (directoryPath: string) {
 
 // some files are ignored in calc hash in client sdk
 // https://github.com/Microsoft/react-native-code-push/pull/974/files#diff-21b650f88429c071b217d46243875987R15
-export const isHashIgnored = function (relativePath) {
+export const isHashIgnored = function (relativePath: string) {
   if (!relativePath) {
     return true;
   }
@@ -153,7 +146,7 @@ export const isHashIgnored = function (relativePath) {
     || relativePath.endsWith(IgnoreDSStore);
 }
 
-export const isPackageHashIgnored = function (relativePath) {
+export const isPackageHashIgnored = function (relativePath: string) {
   if (!relativePath) {
     return true;
   }
@@ -167,41 +160,39 @@ export const isPackageHashIgnored = function (relativePath) {
 }
 
 
-export const calcAllFileSha256 = function (directoryPath) {
-  return new Promise((resolve, reject) => {
-    recursive(directoryPath, (error, files) => {
-      if (error) {
-        log.error(error);
-        reject(new AppError(error.message));
-      } else {
-        // filter files that should be ignored
-        files = files.filter((file) => {
-          var relative = path.relative(directoryPath, file);
-          return !isHashIgnored(relative);
-        });
+export const calcAllFileSha256 = async function (directoryPath: string) {
+  try {
+    const results = await recursive(directoryPath)
+    const files = results.filter((file) => {
+      var relative = path.relative(directoryPath, file);
+      return !isHashIgnored(relative);
+    })
 
-        if (files.length == 0) {
-          log.debug(`calcAllFileSha256 empty files in directoryPath:`, directoryPath);
-          reject(new AppError("empty files"));
-        } else {
-          sha256AllFiles(files)
-            .then((results) => {
-              var data = {};
-              _.forIn(results, (value, key) => {
-                var relativePath = path.relative(directoryPath, key);
-                relativePath = slash(relativePath);
-                data[relativePath] = value;
-              });
-              log.debug(`calcAllFileSha256 files:`, data);
-              resolve(data);
-            });
-        }
-      }
-    });
-  });
+    if (files.length == 0) {
+      log.debug(`calcAllFileSha256 empty files in directoryPath:`, directoryPath);
+      throw new AppError("empty files")
+    }
+
+    const hashedFiles = await sha256AllFiles(files)
+
+    /// creates a map of relative path and actual path of files { [relativePath]: filePath }
+    const data = mergeAll(toPairs(hashedFiles).map(([filePath, hash]) => {
+      const relativePath = slash((path.relative(directoryPath, hash)))
+      return { [relativePath]: filePath }
+    }))
+
+    log.debug(`calcAllFileSha256 files:`, data);
+
+    return data
+
+  } catch (error) {
+    log.error(error);
+    if (error instanceof Error || error instanceof AppError)
+      throw new AppError(error.message)
+  }
 }
 
-export const sortJsonToArr = function (json) {
+export const sortJsonToArr = function (json: { [key: string]: unknown }) {
   var rs: any = [];
   _.forIn(json, (value, key) => {
     rs.push({ path: key, hash: value })

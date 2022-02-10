@@ -9,7 +9,6 @@
         "allowUnreachableCode": false,
         "alwaysStrict": true,
         "noFallthroughCasesInSwitch": true,
-        "noImplicitAny": false,
         "noImplicitReturns": true,
         "noImplicitThis": true,
         "strict": true,

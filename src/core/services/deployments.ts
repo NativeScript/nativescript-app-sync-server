@@ -9,7 +9,7 @@ import log4js from 'log4js'
 
 const log = log4js.getLogger("cps:deployments")
 
-export const getAllPackageIdsByDeploymentsId = function (deploymentsId) {
+export const getAllPackageIdsByDeploymentsId = function (deploymentsId: number) {
   return models.Packages.findAll({ where: { deployment_id: deploymentsId } });
 };
 
@@ -22,7 +22,7 @@ export const existDeloymentName = async function (appId: number, name: string) {
   }
 };
 
-export const addDeloyment = async function (name, appId, uid) {
+export const addDeloyment = async function (name, appId: number, uid: number) {
   const user = await models.Users.findByPk(uid)
   if (_.isEmpty(user)) {
     throw new AppError('can\'t find user');
@@ -42,7 +42,7 @@ export const addDeloyment = async function (name, appId, uid) {
   });
 };
 
-export const renameDeloymentByName = async function (deploymentName, appId, newName) {
+export const renameDeloymentByName = async function (deploymentName, appId: number, newName) {
   await existDeloymentName(appId, newName)
 
   const [affectedCount, affectedRow] = await models.Deployments.update(
@@ -101,7 +101,7 @@ export const findPackagesAndOtherInfos = async function (packageId: number | und
   });
 };
 
-export const findDeloymentsPackages = function (deploymentsVersionsId) {
+export const findDeloymentsPackages = function (deploymentsVersionsId: number) {
   return models.DeploymentsVersions.findOne({ where: { id: deploymentsVersionsId } })
     .then((deploymentsVersionsInfo) => {
       if (deploymentsVersionsInfo) {
@@ -135,7 +135,7 @@ export const formatPackage = function (packageVersion) {
   };
 };
 
-export const listDeloyments = async function (appId) {
+export const listDeloyments = async function (appId: number) {
   const deploymentsInfos = await models.Deployments.findAll({ where: { appid: appId } })
   if (_.isEmpty(deploymentsInfos)) {
     return [];
@@ -155,7 +155,7 @@ export const listDeloyment = function (deploymentInfo) {
   });
 }
 
-export const getDeploymentHistory = function (deploymentId) {
+export const getDeploymentHistory = function (deploymentId: number) {
   return models.DeploymentsHistory.findAll({ where: { deployment_id: deploymentId }, order: [['id', 'desc']], limit: 15 })
     .then((history) => {
       return _.map(history, (v) => { return v.package_id });
@@ -167,7 +167,7 @@ export const getDeploymentHistory = function (deploymentId) {
     });
 };
 
-export const deleteDeploymentHistory = function (deploymentId) {
+export const deleteDeploymentHistory = function (deploymentId: number) {
   return models.sequelize.transaction((t) => {
     return Promise.all([
       models.Deployments.update(

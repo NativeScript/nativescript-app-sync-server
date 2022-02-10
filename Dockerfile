@@ -1,5 +1,5 @@
 #Dockerfile
-FROM node:14.6 as base
+FROM node:14.17 as base
 WORKDIR /usr
 COPY /package*.json ./
 RUN npm install --no-optional && npm cache clean --force

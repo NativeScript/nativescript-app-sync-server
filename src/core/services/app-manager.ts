@@ -6,7 +6,7 @@ import { AppError } from '../app-error'
 import constName from '../constants'
 import Sequelize from 'sequelize'
 
-export const findAppByName = function (uid, appName) {
+export const findAppByName = function (uid: number, appName: string) {
   return models.Apps.findOne({ where: { name: appName, uid: uid } });
 };
 
@@ -48,7 +48,7 @@ export const addApp = function (uid: number, appName: string, os: number, platfo
   });
 };
 
-export const deleteApp = function (appId) {
+export const deleteApp = function (appId: number) {
   return models.sequelize.transaction((t) => {
     return Promise.all([
       models.Apps.destroy({ where: { id: appId }, transaction: t }),
@@ -58,7 +58,7 @@ export const deleteApp = function (appId) {
   });
 };
 
-export const modifyApp = async (appId, params) => {
+export const modifyApp = async (appId: number, params) => {
   const [affectedCount, affectedRows] = await models.Apps.update(params, { where: { id: appId } })
   if (!_.gt(affectedCount, 0)) {
     throw new AppError('modify errors');
@@ -66,7 +66,7 @@ export const modifyApp = async (appId, params) => {
   return affectedCount;
 };
 
-export const transferApp = function (appId, fromUid, toUid) {
+export const transferApp = function (appId: number, fromUid: number, toUid: number) {
   return models.sequelize.transaction((t) => {
     return Promise.all([
       models.Apps.update({ uid: toUid }, { where: { id: appId }, transaction: t }),
@@ -77,7 +77,7 @@ export const transferApp = function (appId, fromUid, toUid) {
   });
 };
 
-export const listApps = function (uid) {
+export const listApps = function (uid: number) {
   return models.Collaborators.findAll({ where: { uid: uid } })
     .then((data) => {
       if (_.isEmpty(data)) {
@@ -112,7 +112,7 @@ export const listApps = function (uid) {
     });
 };
 
-export const getAppDetailInfo = function (appInfo, currentUid) {
+export const getAppDetailInfo = function (appInfo, currentUid: number) {
   var appId = appInfo.get('id');
   return Promise.all([
     models.Deployments.findAll({ where: { appid: appId } }),

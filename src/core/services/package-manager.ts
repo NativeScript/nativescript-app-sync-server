@@ -5,7 +5,7 @@ import formidable, { File } from 'formidable'
 import yazl from "yazl"
 import fs from "fs"
 import * as common from '../utils/common'
-import DiffMatchPatch from 'diff-match-patch'
+import { diff_match_patch as DiffMatchPatch} from 'diff-match-patch'
 import os from 'os'
 import path from 'path'
 import { AppError } from '../app-error'
@@ -18,15 +18,15 @@ import { Op, Transaction } from 'sequelize'
 import { PackageInfo } from 'src/types'
 var log = log4js.getLogger("cps:PackageManager");
 
-export const getMetricsbyPackageId = function (packageId) {
+export const getMetricsbyPackageId = function (packageId: number) {
   return models.PackagesMetrics.findOne({ where: { package_id: packageId } });
 }
 
-export const findPackageInfoByDeploymentIdAndLabel = function (deploymentId, label) {
+export const findPackageInfoByDeploymentIdAndLabel = function (deploymentId: number, label) {
   return models.Packages.findOne({ where: { deployment_id: deploymentId, label: label } });
 }
 
-export const findLatestPackageInfoByDeployVersion = function (deploymentsVersionsId) {
+export const findLatestPackageInfoByDeployVersion = function (deploymentsVersionsId: number) {
   return models.DeploymentsVersions.findByPk(deploymentsVersionsId)
     .then((deploymentsVersions) => {
       if (!deploymentsVersions || deploymentsVersions.current_package_id < 0) {
@@ -189,7 +189,7 @@ export const zipDiffPackage = function (fileName, files, baseDirectoryPath, hotC
 
 export const generateOneDiffPackage = function (
   workDirectoryPath,
-  packageId,
+  packageId: number,
   originDataCenter,
   oldPackageDataCenter,
   diffPackageHash,
@@ -270,7 +270,7 @@ export const generateOneDiffPackage = function (
     });
 };
 
-export const createDiffPackagesByLastNums = async function (appId, originalPackage, num) {
+export const createDiffPackagesByLastNums = async function (appId: number, originalPackage, num: number) {
   const packageId = originalPackage.id;
   const [lastNumsPackages, basePackages, appInfo] = await Promise.all([
     models.Packages.findAll({
@@ -331,7 +331,7 @@ export const createDiffPackages = function (originalPackage, destPackages, isUse
     .finally(() => common.deleteFolderSync(workDirectoryPath));
 }
 
-export const releasePackage = async (appId: number, deploymentId: number, packageInfo, filePath: string, releaseUid) => {
+export const releasePackage = async (appId: number, deploymentId: number, packageInfo, filePath: string, releaseUid: number) => {
 
   const appVersion = packageInfo.appVersion;
   const versionInfo = common.validatorVersion(appVersion);
@@ -403,7 +403,7 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
   }
 };
 
-export const modifyReleasePackage = async function (packageId, params) {
+export const modifyReleasePackage = async function (packageId: number, params) {
   const appVersion = _.get(params, 'appVersion');
   const description = _.get(params, 'description');
   const isMandatory = _.get(params, 'isMandatory');
@@ -550,7 +550,7 @@ export const promotePackage = async function (sourceDeploymentInfo, destDeployme
   );
 };
 
-export const rollbackPackage = async function (deploymentVersionId, targetLabel, rollbackUid) {
+export const rollbackPackage = async function (deploymentVersionId: number, targetLabel, rollbackUid: number) {
   const deploymentsVersions = await models.DeploymentsVersions.findByPk(deploymentVersionId)
   if (!deploymentsVersions) {
     throw new AppError("You have not published a version before");

@@ -3,7 +3,7 @@ import _ from 'lodash'
 import { AppError } from '../app-error'
 import Sequelize from 'sequelize'
 
-export const listCollaborators = function (appId) {
+export const listCollaborators = function (appId: number) {
   return models.Collaborators.findAll({ where: { appid: appId } })
     .then((data) => {
       return _.reduce(data, function (result: any, value, key) {
@@ -27,7 +27,7 @@ export const listCollaborators = function (appId) {
     });
 }
 
-export const addCollaborator = async (appId, uid) => {
+export const addCollaborator = async (appId: number, uid: number) => {
   const res = await models.Collaborators.findOne({ where: { appid: appId, uid: uid } })
   if (!res)
     return models.Collaborators.create({
@@ -39,7 +39,7 @@ export const addCollaborator = async (appId, uid) => {
   throw new AppError('user already is Collaborator.')
 }
 
-export const deleteCollaborator = async function (appId, uid) {
+export const deleteCollaborator = async function (appId: number, uid: number) {
   const res = await models.Collaborators.findOne({ where: { appid: appId, uid: uid } })
   if (!res)
     throw new AppError('user is not a Collaborator')

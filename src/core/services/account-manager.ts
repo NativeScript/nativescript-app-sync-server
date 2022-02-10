@@ -22,7 +22,7 @@ export const collaboratorCan = async function (uid: number, appName: string) {
   return data;
 };
 
-export const ownerCan = function (uid, appName) {
+export const ownerCan = function (uid: number, appName: string) {
   return getCollaborator(uid, appName)
     .then((data) => {
       if (!data) {
@@ -39,7 +39,7 @@ export const ownerCan = function (uid, appName) {
 
 export const getCollaborator = (uid: number, appName: string) => findByAppNameAndUid(uid, appName);
 
-export const findUserByEmail = function (email) {
+export const findUserByEmail = function (email: string) {
   return models.Users.findOne({ where: { email: email } })
     .then((data) => {
       if (_.isEmpty(data)) {
@@ -50,7 +50,7 @@ export const findUserByEmail = function (email) {
     });
 };
 
-export const getAllAccessKeyByUid = function (uid) {
+export const getAllAccessKeyByUid = function (uid: number) {
   return models.UserTokens.findAll({ where: { uid: uid }, order: [['id', 'DESC']] })
     .then((tokens) => {
       return _.map(tokens, function (v) {
@@ -66,13 +66,13 @@ export const getAllAccessKeyByUid = function (uid) {
     });
 };
 
-export const isExsitAccessKeyName = function (uid, friendlyName) {
+export const isExsitAccessKeyName = function (uid: number, friendlyName: string) {
   return models.UserTokens.findOne({
     where: { uid: uid, name: friendlyName }
   });
 };
 
-export const createAccessKey = function (uid, newAccessKey, ttl, friendlyName, createdBy, description) {
+export const createAccessKey = function (uid: number, newAccessKey: string, ttl: number, friendlyName: string, createdBy: string, description: string) {
   return models.UserTokens.create({
     uid: uid,
     name: friendlyName,
@@ -86,72 +86,61 @@ export const createAccessKey = function (uid, newAccessKey, ttl, friendlyName, c
 
 const LOGIN_LIMIT_PRE = 'LOGIN_LIMIT_PRE_';
 
-export const login = function (account, password) {
+export const login = async function (account: string, password: string) {
   if (_.isEmpty(account)) {
-    return Promise.reject(new AppError("Please enter your email address"))
+    throw new AppError("Please enter your email address")
   }
   if (_.isEmpty(password)) {
-    return Promise.reject(new AppError("Please enter your password"))
+    throw new AppError("Please enter your password")
   }
-  var where = {};
-  if (validator.isEmail(account)) {
-    where = { email: account };
-  } else {
-    where = { username: account };
+  const isEmail = validator.isEmail(account)
+  const where = isEmail ? { email: account } : { username: account }
+
+  const tryLoginTimes = _.get(config, 'common.tryLoginTimes', 0);
+  const users = await models.Users.findOne({ where: where })
+  if (!users) {
+    throw new AppError("The email or password you entered is incorrect")
   }
-  var tryLoginTimes = _.get(config, 'common.tryLoginTimes', 0);
-  return models.Users.findOne({ where: where })
-    .then((users) => {
-      if (_.isEmpty(users)) {
-        throw new AppError("The email or password you entered is incorrect");
-      }
-      return users;
-    })
-    .then(async (users) => {
-      if (tryLoginTimes > 0) {
-        var loginKey = `${LOGIN_LIMIT_PRE}${users?.id}`;
-        const client = await getRedisClient()
-        return client.get(loginKey)
-          .then((loginErrorTimes) => {
-            if (Number(loginErrorTimes) > tryLoginTimes) {
-              throw new AppError(`Too many login attempts. Your account has been locked.`);
-            }
-            return users;
-          })
-          .finally(() => client.quit());
-      } else {
-        return users;
-      }
-    })
-    .then(async (users) => {
-      if (!security.passwordVerifySync(password, users?.password)) {
-        if (tryLoginTimes > 0) {
-          var loginKey = `${LOGIN_LIMIT_PRE}${users?.id}`;
-          const client = await getRedisClient()
-          client.exists(loginKey).then((isExists: any) => {
-            if (!isExists) {
-              var expires = Number(moment().endOf('day').format('X')) - Number(moment().format('X'));
-              return client.setEx(loginKey, expires, '0');
-            }
-            return isExists;
-          })
-            .then(() => {
-              return client.incr(loginKey);
-            })
-            .finally(() => client.quit());
+
+  if (tryLoginTimes > 0) {
+    const loginKey = `${LOGIN_LIMIT_PRE}${users.id}`;
+    const client = await getRedisClient()
+    const loginErrorTimes = await client.get(loginKey).finally(() => client.quit());
+
+    if (Number(loginErrorTimes) > tryLoginTimes) {
+      throw new AppError(`Too many login attempts. Your account has been locked.`);
+    }
+  }
+
+  if (!security.passwordVerifySync(password, users.password)) {
+    if (tryLoginTimes > 0) {
+      const loginKey = `${LOGIN_LIMIT_PRE}${users.id}`;
+      const client = await getRedisClient()
+
+      try {
+        const isExists = await client.exists(loginKey)
+        if (!isExists) {
+          const expires = Number(moment().endOf('day').format('X')) - Number(moment().format('X'));
+          await client.setEx(loginKey, expires, '0');
         }
-        throw new AppError("The email or password you entered is incorrect");
-      } else {
-        return users;
+
+        await client.incr(loginKey);
+      } finally {
+        client.quit()
       }
-    });
+
+    }
+    throw new AppError("The email or password you entered is incorrect");
+  } else {
+    return users;
+  }
 };
 
 const REGISTER_CODE = "REGISTER_CODE_";
 const EXPIRED = 1200;
 const EXPIRED_SPEED = 10;
 
-export const sendRegisterCode = function (email) {
+export const sendRegisterCode = function (email: string) {
   if (_.isEmpty(email)) {
     return Promise.reject(new AppError("Please enter your email address"));
   }
@@ -176,7 +165,7 @@ export const sendRegisterCode = function (email) {
     })
 };
 
-export const checkRegisterCode = function (email, token) {
+export const checkRegisterCode = function (email: string, token: string) {
   return models.Users.findOne({ where: { email: email } })
     .then((u) => {
       if (u) {
@@ -207,7 +196,7 @@ export const checkRegisterCode = function (email, token) {
     })
 }
 
-export const register = function (email, password) {
+export const register = function (email: string, password: string) {
   return models.Users.findOne({ where: { email: email } })
     .then((u) => {
       if (u) {
@@ -224,7 +213,7 @@ export const register = function (email, password) {
     })
 }
 
-export const changePassword = function (uid, oldPassword, newPassword) {
+export const changePassword = function (uid: number, oldPassword: string, newPassword: string) {
   if (!_.isString(newPassword) || newPassword.length < 6) {
     return Promise.reject(new AppError("Please enter a password between 6 and 20 characters"));
   }

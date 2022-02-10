@@ -68,7 +68,7 @@ export const updateCheckFromCache = async function (deploymentKey, appVersion, l
     .finally(() => client.quit());
 }
 
-export const getChosenManCacheKey = function (packageId, rollout, clientUniqueId) {
+export const getChosenManCacheKey = function (packageId: number, rollout, clientUniqueId) {
   return [CHOSEN_MAN, packageId, rollout, clientUniqueId].join(':');
 }
 
@@ -81,7 +81,7 @@ export const random = function (rollout) {
   }
 }
 
-export const chosenMan = function (packageId, rollout, clientUniqueId) {
+export const chosenMan = function (packageId: number, rollout, clientUniqueId) {
   if (rollout >= 100) {
     return Promise.resolve(true);
   }
