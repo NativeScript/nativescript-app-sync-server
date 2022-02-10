@@ -5,6 +5,8 @@ import * as security from '../../core/utils/security'
 import { AppError } from '../app-error'
 import constName from '../constants'
 import Sequelize from 'sequelize'
+import { AppAttributes, AppInstance } from '~/models/apps'
+import { UpdateModelAttrs } from '~/types'
 
 export const findAppByName = function (uid: number, appName: string) {
   return models.Apps.findOne({ where: { name: appName, uid: uid } });
@@ -58,7 +60,8 @@ export const deleteApp = function (appId: number) {
   });
 };
 
-export const modifyApp = async (appId: number, params) => {
+export const modifyApp = async (appId: number, params: UpdateModelAttrs<AppAttributes>) => {
+
   const [affectedCount, affectedRows] = await models.Apps.update(params, { where: { id: appId } })
   if (!_.gt(affectedCount, 0)) {
     throw new AppError('modify errors');
@@ -77,71 +80,65 @@ export const transferApp = function (appId: number, fromUid: number, toUid: numb
   });
 };
 
-export const listApps = function (uid: number) {
-  return models.Collaborators.findAll({ where: { uid: uid } })
-    .then((data) => {
-      if (_.isEmpty(data)) {
-        return [];
-      } else {
-        var appIds = _.map(data, (v) => { return v.appid });
-        return models.Apps.findAll({ where: { id: { [Sequelize.Op.in]: appIds } } });
-      }
-    })
-    .then((appInfos) => {
-      var rs = bluebird.map(_.values(appInfos), (v) => {
-        return getAppDetailInfo(v, uid)
-          .then((info) => {
-            if (info.os == constName.IOS) {
-              info.os = constName.IOS_NAME;
-            } else if (info.os == constName.ANDROID) {
-              info.os = constName.ANDROID_NAME;
-            } else if (info.os == constName.WINDOWS) {
-              info.os = constName.WINDOWS_NAME;
-            }
-            if (info.platform == constName.REACT_NATIVE) {
-              info.platform = constName.REACT_NATIVE_NAME;
-            } else if (info.platform == constName.CORDOVA) {
-              info.platform = constName.CORDOVA_NAME;
-            } else if (info.platform == constName.NATIVESCRIPT) {
-              info.platform = constName.NATIVESCRIPT_NAME;
-            }
-            return info;
-          });
+export const listApps = async function (uid: number) {
+  const col = await models.Collaborators.findAll({ where: { uid } })
+  const appIds = _.map(col, (v) => v.appid);
+
+  const appInfos = !_.isEmpty(col) ? await models.Apps.findAll({ where: { id: { [Sequelize.Op.in]: appIds } } }) : []
+
+  var rs = bluebird.map(_.values(appInfos), (v) => {
+    return getAppDetailInfo(v, uid)
+      .then((info) => {
+        if (info.os == constName.IOS) {
+          info.os = constName.IOS_NAME;
+        } else if (info.os == constName.ANDROID) {
+          info.os = constName.ANDROID_NAME;
+        } else if (info.os == constName.WINDOWS) {
+          info.os = constName.WINDOWS_NAME;
+        }
+        if (info.platform == constName.REACT_NATIVE) {
+          info.platform = constName.REACT_NATIVE_NAME;
+        } else if (info.platform == constName.CORDOVA) {
+          info.platform = constName.CORDOVA_NAME;
+        } else if (info.platform == constName.NATIVESCRIPT) {
+          info.platform = constName.NATIVESCRIPT_NAME;
+        }
+        return info;
       });
-      return rs;
-    });
+  });
+  return rs;
 };
 
-export const getAppDetailInfo = function (appInfo, currentUid: number) {
-  var appId = appInfo.get('id');
-  return Promise.all([
+export const getAppDetailInfo = async function (appInfo: AppInstance, currentUid: number) {
+  const appId = appInfo.get('id')
+  const [deploymentInfos, collaboratorInfos] = await Promise.all([
     models.Deployments.findAll({ where: { appid: appId } }),
     models.Collaborators.findAll({ where: { appid: appId } }),
   ])
-    .then((res) => {
-      const collaboratorInfos = res[1]
-      const deploymentInfos = res[0]
 
-      return bluebird.props({
-        collaborators: bluebird.reduce(collaboratorInfos, (allCol, collaborator) => {
-          return models.Users.findOne({ where: { id: collaborator.get('uid') } })
-            .then((u: any) => {
-              var isCurrentAccount = false;
-              if (_.eq(u?.get('id'), currentUid)) {
-                isCurrentAccount = true;
-              }
-              allCol[u.get('email')] = { permission: collaborator.get('roles'), isCurrentAccount: isCurrentAccount };
-              return allCol;
-            });
-        }, {}),
+  return bluebird.props({
+    collaborators: bluebird.reduce(collaboratorInfos, async (allCol, collaborator) => {
+      const user = await models.Users.findOne({ where: { id: collaborator.get('uid') } })
 
-        deployments: _.map(deploymentInfos, (item) => {
-          return _.get(item, 'name');
-        }),
-        os: appInfo.get('os'),
-        platform: appInfo.get('platform'),
-        name: appInfo.get('name'),
-        id: appInfo.get('id')
-      });
-    });
+      const isCurrentAccount = _.eq(user?.get('id'), currentUid);
+      const permissions = { permission: collaborator.get('roles'), isCurrentAccount }
+
+      allCol[String(user?.get('email'))] = permissions
+
+      return allCol;
+    }, {} as {
+      [key: string]: {
+        permission: string;
+        isCurrentAccount: boolean;
+      }
+    }),
+
+    deployments: _.map(deploymentInfos, (item) => {
+      return _.get(item, 'name');
+    }),
+    os: appInfo.get('os'),
+    platform: appInfo.get('platform'),
+    name: appInfo.get('name'),
+    id: appInfo.get('id')
+  });
 };

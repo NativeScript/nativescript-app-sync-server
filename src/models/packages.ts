@@ -3,7 +3,7 @@ import {
 } from "sequelize";
 import { sequelize } from "../db";
 
-interface PackagesAttributes {
+export interface PackagesAttributes {
   id: number;
   deployment_version_id: number,
   deployment_id: number,
@@ -25,8 +25,8 @@ interface PackagesAttributes {
   deleted_at?: Date;
 }
 
-interface PackagesCreationAttributes extends Optional<PackagesAttributes, "id"> { }
-interface PackagesInstance extends Model<PackagesAttributes, PackagesCreationAttributes>,
+export interface PackagesCreationAttributes extends Optional<PackagesAttributes, "id"> { }
+export interface PackagesInstance extends Model<PackagesAttributes, PackagesCreationAttributes>,
   PackagesAttributes { }
 
 const PackagesModel = sequelize.define<PackagesInstance>("Packages", {

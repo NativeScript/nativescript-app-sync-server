@@ -20,6 +20,7 @@ export default {
     "IS_DISABLED_YES": 1,
     "IS_DISABLED_NO": 0,
     "RELEAS_EMETHOD_PROMOTE": 'Promote',
+    "RELEAS_EMETHOD_ROLLBACK": 'Rollback',
     "RELEAS_EMETHOD_UPLOAD": 'Upload',
     "DEPLOYMENT_SUCCEEDED": 1,
     "DEPLOYMENT_FAILED": 2,

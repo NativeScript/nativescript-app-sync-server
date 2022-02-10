@@ -6,6 +6,11 @@ import _ from 'lodash'
 import moment from 'moment'
 import { AppError } from '../app-error'
 import log4js from 'log4js'
+import { number } from 'fp-ts'
+import { DeploymentsInstance } from '~/models/deployments'
+import { UsersInstance } from '~/models/users'
+import { PackagesInstance } from '~/models/packages'
+import { DeploymentsVersionsInstance } from '~/models/deployments_versions'
 
 const log = log4js.getLogger("cps:deployments")
 
@@ -22,7 +27,7 @@ export const existDeloymentName = async function (appId: number, name: string) {
   }
 };
 
-export const addDeloyment = async function (name, appId: number, uid: number) {
+export const addDeloyment = async function (name: string, appId: number, uid: number) {
   const user = await models.Users.findByPk(uid)
   if (_.isEmpty(user)) {
     throw new AppError('can\'t find user');
@@ -42,7 +47,7 @@ export const addDeloyment = async function (name, appId: number, uid: number) {
   });
 };
 
-export const renameDeloymentByName = async function (deploymentName, appId: number, newName) {
+export const renameDeloymentByName = async function (deploymentName: string, appId: number, newName: string) {
   await existDeloymentName(appId, newName)
 
   const [affectedCount, affectedRow] = await models.Deployments.update(
@@ -74,7 +79,19 @@ export const findDeloymentByName = function (deploymentName: string, appId: numb
   });
 };
 
-export const findPackagesAndOtherInfos = async function (packageId: number | undefined) {
+type FindPackagesAndOtherInfosResponse = {
+  packageInfo: PackagesInstance;
+  packageDiffMap: {
+    [key: string]: {
+      size: number;
+      url: string;
+    };
+  } | null;
+  userInfo: UsersInstance | null;
+  deploymentsVersions: DeploymentsVersionsInstance | null;
+} | null
+export const findPackagesAndOtherInfos = async function (packageId: number | undefined)
+  : Promise<FindPackagesAndOtherInfosResponse> {
   const packageInfo = await models.Packages.findOne({
     where: { id: packageId }
   })
@@ -92,7 +109,7 @@ export const findPackagesAndOtherInfos = async function (packageId: number | und
               url: common.getBlobDownloadUrl(_.get(v, 'diff_blob_url')),
             };
             return result;
-          }, {});
+          }, {} as { [key: string]: { size: number, url: string } });
         }
         return null;
       }),
@@ -111,7 +128,7 @@ export const findDeloymentsPackages = function (deploymentsVersionsId: number) {
     });
 };
 
-export const formatPackage = function (packageVersion) {
+export const formatPackage = function (packageVersion: FindPackagesAndOtherInfosResponse) {
   if (!packageVersion) {
     return null;
   }
@@ -145,13 +162,13 @@ export const listDeloyments = async function (appId: number) {
   })
 };
 
-export const listDeloyment = function (deploymentInfo) {
+export const listDeloyment = function (deploymentInfo: DeploymentsInstance) {
   return bluebird.props({
     createdTime: parseInt(moment(deploymentInfo.created_at).format('x')),
     id: `${deploymentInfo.id}`,
     key: deploymentInfo.deployment_key,
     name: deploymentInfo.name,
-    package: findDeloymentsPackages([deploymentInfo.last_deployment_version_id]).then(formatPackage)
+    package: findDeloymentsPackages(deploymentInfo.last_deployment_version_id).then(formatPackage)
   });
 }
 

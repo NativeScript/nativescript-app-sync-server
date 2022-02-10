@@ -18,7 +18,7 @@ interface DeploymentsAttributes {
 }
 
 interface DeploymentsCreationAttributes extends Optional<DeploymentsAttributes, "id" | "description"> { }
-interface DeploymentsInstance extends Model<DeploymentsAttributes, DeploymentsCreationAttributes>,
+export interface DeploymentsInstance extends Model<DeploymentsAttributes, DeploymentsCreationAttributes>,
   DeploymentsAttributes { }
 
 const Deployments = sequelize.define<DeploymentsInstance>("Deployments", {

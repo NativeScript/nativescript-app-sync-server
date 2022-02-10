@@ -3,19 +3,19 @@ import {
 } from "sequelize";
 import { sequelize } from "../db";
 
-interface AppAttributes {
+export interface AppAttributes {
   id: number;
   name: string;
   uid: number;
-  os: number;
-  platform: number;
+  os: number | string;
+  platform: number | string;
   is_use_diff_text: number;
   created_at?: Date;
   updated_at?: Date;
 }
 
 interface AppCreationAttributes extends Optional<AppAttributes, "id" | "is_use_diff_text"> { }
-interface AppInstance extends Model<AppAttributes, AppCreationAttributes>,
+export interface AppInstance extends Model<AppAttributes, AppCreationAttributes>,
   AppAttributes { }
 
 const AppModel = sequelize.define<AppInstance>("Apps", {

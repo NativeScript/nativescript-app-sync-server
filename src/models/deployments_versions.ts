@@ -15,8 +15,8 @@ interface DeploymentsVersionsAttributes {
 }
 
 interface DeploymentsVersionsCreationAttributes extends Optional<DeploymentsVersionsAttributes, "id"> { }
-interface DeploymentsVersionsInstance extends Model<DeploymentsVersionsAttributes, DeploymentsVersionsCreationAttributes>,
-  DeploymentsVersionsAttributes {  }
+export interface DeploymentsVersionsInstance extends Model<DeploymentsVersionsAttributes, DeploymentsVersionsCreationAttributes>,
+  DeploymentsVersionsAttributes { }
 
 const DeploymentsVersions = sequelize.define<DeploymentsVersionsInstance>("DeploymentsVersions", {
   id: {
@@ -27,7 +27,7 @@ const DeploymentsVersions = sequelize.define<DeploymentsVersionsInstance>("Deplo
   },
   deployment_id: DataTypes.INTEGER({ length: 11 }),
   app_version: DataTypes.STRING(100),
-  current_package_id: DataTypes.INTEGER({ length: 10}),
+  current_package_id: DataTypes.INTEGER({ length: 10 }),
   min_version: DataTypes.BIGINT({ length: 20 }),
   max_version: DataTypes.BIGINT({ length: 20 }),
   created_at: DataTypes.DATE(),

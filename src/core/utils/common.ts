@@ -51,7 +51,7 @@ export const parseVersion = function (versionNo) {
   return version;
 };
 
-export const validatorVersion = function (versionNo) {
+export const validatorVersion = function (versionNo: string) {
   var flag = false;
   var min = '0';
   var max = '9999999999999999999';
@@ -90,7 +90,9 @@ export const validatorVersion = function (versionNo) {
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
     max = data[4] + _.padStart(data[5], 5, '0') + _.padStart(data[6], 10, '0');
   }
-  return [flag, min, max];
+  return { flag, min, max };
+
+  //return [flag, min, max]; Mayer changed it from this
 };
 
 export const createFileFromRequest = function (url, filePath) {

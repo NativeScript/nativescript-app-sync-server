@@ -8,6 +8,7 @@ import { AppError } from '../app-error'
 import log4js from 'log4js'
 import path from 'path'
 import config from '../config'
+import { PackageInfoBuild } from '~/types'
 
 const MANIFEST_FILE_NAME = 'manifest.json';
 const CONTENTS_NAME = 'contents';
@@ -22,7 +23,7 @@ export const getDataDir = function () {
   return dataDir;
 }
 
-export const hasPackageStoreSync = function (packageHash) {
+export const hasPackageStoreSync = function (packageHash: string) {
   var dataDir = getDataDir();
   var packageHashPath = path.join(dataDir, packageHash);
   var manifestFile = path.join(packageHashPath, MANIFEST_FILE_NAME);
@@ -30,7 +31,7 @@ export const hasPackageStoreSync = function (packageHash) {
   return fs.existsSync(manifestFile) && fs.existsSync(contentPath);
 }
 
-export const getPackageInfo = function (packageHash) {
+export const getPackageInfo = function (packageHash: string) {
   if (hasPackageStoreSync(packageHash)) {
     var dataDir = getDataDir();
     var packageHashPath = path.join(dataDir, packageHash);
@@ -42,7 +43,9 @@ export const getPackageInfo = function (packageHash) {
   }
 }
 
-export const buildPackageInfo = function (packageHash, packageHashPath, contentPath, manifestFile) {
+
+export const buildPackageInfo = function (packageHash: string, packageHashPath: string, contentPath: string, manifestFile: string)
+  : PackageInfoBuild {
   return {
     packageHash: packageHash,
     path: packageHashPath,
@@ -51,7 +54,7 @@ export const buildPackageInfo = function (packageHash, packageHashPath, contentP
   }
 }
 
-export const validateStore = function (providePackageHash) {
+export const validateStore = function (providePackageHash: string) {
   var dataDir = getDataDir();
   var packageHashPath = path.join(dataDir, providePackageHash);
   var manifestFile = path.join(packageHashPath, MANIFEST_FILE_NAME);
@@ -62,7 +65,9 @@ export const validateStore = function (providePackageHash) {
   }
   return security.calcAllFileSha256(contentPath)
     .then((manifestJson) => {
-      var packageHash = security.packageHashSync(manifestJson);
+      if (_.isEmpty(manifestJson))
+        log.debug('manifestJson is empty')
+      const packageHash = security.packageHashSync(manifestJson || {});
       log.debug(`validateStore packageHash:`, packageHash);
       try {
         var manifestJsonLocal = JSON.parse(fs.readFileSync(manifestFile, 'utf-8'));
@@ -81,17 +86,19 @@ export const validateStore = function (providePackageHash) {
     });
 }
 
-export const storePackage = function (sourceDst, force?: boolean) {
+export const storePackage = function (sourceDst: string, force?: boolean) {
   log.debug(`storePackage sourceDst:`, sourceDst);
- 
+
   return security.calcAllFileSha256(sourceDst)
     .then((manifestJson) => {
-      var packageHash = security.packageHashSync(manifestJson);
+      if (_.isEmpty(manifestJson))
+        log.debug('manifestJson is empty')
+      const packageHash = security.packageHashSync(manifestJson || {});
       log.debug('storePackage manifestJson packageHash:', packageHash);
-      var dataDir = getDataDir();
-      var packageHashPath = path.join(dataDir, packageHash);
-      var manifestFile = path.join(packageHashPath, MANIFEST_FILE_NAME);
-      var contentPath = path.join(packageHashPath, CONTENTS_NAME);
+      const dataDir = getDataDir();
+      const packageHashPath = path.join(dataDir, packageHash);
+      const manifestFile = path.join(packageHashPath, MANIFEST_FILE_NAME);
+      const contentPath = path.join(packageHashPath, CONTENTS_NAME);
       return validateStore(packageHash)
         .then((isValidate) => {
           if (!force && isValidate) {

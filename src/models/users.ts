@@ -14,8 +14,8 @@ export interface UsersAttributes {
   created_at?: Date
 }
 
-interface UsersCreationAttributes extends Optional<UsersAttributes, "id" | "ack_code" | "identical" | "username"> {  }
-interface UsersInstance extends Model<UsersAttributes, UsersCreationAttributes>,
+interface UsersCreationAttributes extends Optional<UsersAttributes, "id" | "ack_code" | "identical" | "username"> { }
+export interface UsersInstance extends Model<UsersAttributes, UsersCreationAttributes>,
   UsersAttributes { }
 
 const UsersModel = sequelize.define<UsersInstance>("Users", {

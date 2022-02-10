@@ -15,13 +15,13 @@ const UPDATE_CHECK = "UPDATE_CHECK";
 const CHOSEN_MAN = "CHOSEN_MAN";
 const EXPIRED = 600;
 
-export const getUpdateCheckCacheKey = function (deploymentKey, appVersion, label, packageHash) {
+export const getUpdateCheckCacheKey = function (deploymentKey: string, appVersion: string, label: string, packageHash: string) {
   return [UPDATE_CHECK, deploymentKey, appVersion, label, packageHash].join(':');
 }
 
-export const clearUpdateCheckCache = async function (deploymentKey, appVersion, label, packageHash) {
+export const clearUpdateCheckCache = async function (deploymentKey: string, appVersion: string, label: string, packageHash: string) {
   log.debug('clear cache Deployments key:', deploymentKey);
-  let redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
+  const redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
   const client = await getRedisClient()
 
   return client.keys(redisCacheKey)
@@ -36,7 +36,7 @@ export const clearUpdateCheckCache = async function (deploymentKey, appVersion, 
     .finally(() => client.quit());
 }
 
-export const updateCheckFromCache = async function (deploymentKey, appVersion, label, packageHash, clientUniqueId) {
+export const updateCheckFromCache = async function (deploymentKey: string, appVersion: string, label: string, packageHash: string, clientUniqueId: number) {
   var updateCheckCache = _.get(config, 'common.updateCheckCache', false);
   if (updateCheckCache === false) {
     return updateCheck(deploymentKey, appVersion, label, packageHash);
@@ -68,11 +68,11 @@ export const updateCheckFromCache = async function (deploymentKey, appVersion, l
     .finally(() => client.quit());
 }
 
-export const getChosenManCacheKey = function (packageId: number, rollout, clientUniqueId) {
+export const getChosenManCacheKey = function (packageId: number, rollout: number, clientUniqueId: number) {
   return [CHOSEN_MAN, packageId, rollout, clientUniqueId].join(':');
 }
 
-export const random = function (rollout) {
+export const random = function (rollout: number) {
   var r = Math.ceil(Math.random() * 10000);
   if (r < rollout * 100) {
     return Promise.resolve(true);
@@ -81,7 +81,7 @@ export const random = function (rollout) {
   }
 }
 
-export const chosenMan = function (packageId: number, rollout, clientUniqueId) {
+export const chosenMan = async function (packageId: number, rollout: number, clientUniqueId: number) {
   if (rollout >= 100) {
     return Promise.resolve(true);
   }
@@ -89,8 +89,8 @@ export const chosenMan = function (packageId: number, rollout, clientUniqueId) {
   if (rolloutClientUniqueIdCache === false) {
     return random(rollout);
   } else {
-    var client = client
-    var redisCacheKey = getChosenManCacheKey(packageId, rollout, clientUniqueId);
+    const client = await getRedisClient()
+    const redisCacheKey = getChosenManCacheKey(packageId, rollout, clientUniqueId);
     return client.get(redisCacheKey)
       .then((data) => {
         if (Number(data) == 1) {
@@ -209,7 +209,7 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
     });
 };
 
-export const getPackagesInfo = function (deploymentKey, label) {
+export const getPackagesInfo = function (deploymentKey: string, label: string) {
   if (_.isEmpty(deploymentKey) || _.isEmpty(label)) {
     return Promise.reject(new AppError("please input deploymentKey and label"))
   }
@@ -228,7 +228,7 @@ export const getPackagesInfo = function (deploymentKey, label) {
     });
 };
 
-export const reportStatusDownload = function (deploymentKey, label, clientUniqueId) {
+export const reportStatusDownload = function (deploymentKey: string, label: string, clientUniqueId: string) {
   return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
       return Promise.all([
@@ -247,7 +247,8 @@ export const reportStatusDownload = function (deploymentKey, label, clientUnique
     });
 };
 
-export const reportStatusDeploy = function (deploymentKey, label, clientUniqueId, others) {
+// TODO fix others type
+export const reportStatusDeploy = function (deploymentKey: string, label: string, clientUniqueId: string, others: unknown) {
   return getPackagesInfo(deploymentKey, label)
     .then((packages) => {
       const statusText = _.get(others, "status");

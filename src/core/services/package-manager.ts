@@ -5,7 +5,7 @@ import formidable, { File } from 'formidable'
 import yazl from "yazl"
 import fs from "fs"
 import * as common from '../utils/common'
-import { diff_match_patch as DiffMatchPatch} from 'diff-match-patch'
+import { diff_match_patch as DiffMatchPatch } from 'diff-match-patch'
 import os from 'os'
 import path from 'path'
 import { AppError } from '../app-error'
@@ -15,14 +15,17 @@ import { generateLabelId } from '~/queries'
 import * as bluebird from 'bluebird'
 import * as dataCenterManager from './datacenter-manager'
 import { Op, Transaction } from 'sequelize'
-import { PackageInfo } from 'src/types'
+import { PackageInfo, PackageInfoBuild } from 'src/types'
+import { Request } from 'express'
+import { PackagesAttributes, PackagesCreationAttributes, PackagesInstance } from '~/models/packages'
+import { DeploymentsInstance } from '~/models/deployments'
 var log = log4js.getLogger("cps:PackageManager");
 
 export const getMetricsbyPackageId = function (packageId: number) {
   return models.PackagesMetrics.findOne({ where: { package_id: packageId } });
 }
 
-export const findPackageInfoByDeploymentIdAndLabel = function (deploymentId: number, label) {
+export const findPackageInfoByDeploymentIdAndLabel = function (deploymentId: number, label: string) {
   return models.Packages.findOne({ where: { deployment_id: deploymentId, label: label } });
 }
 
@@ -38,7 +41,7 @@ export const findLatestPackageInfoByDeployVersion = function (deploymentsVersion
     });
 }
 
-export const parseReqFile = function (req): Promise<{ packageInfo: PackageInfo, package: File }> {
+export const parseReqFile = function (req: Request): Promise<{ packageInfo: PackageInfo, package: File }> {
   log.debug('parseReqFile');
   return new Promise((resolve, reject) => {
     const form = new formidable.IncomingForm({ maxFieldsSize: 200 * 1024 * 1024 });
@@ -93,7 +96,21 @@ export const isMatchPackageHash = async function (packageId: number, packageHash
   }
 };
 
-export const createPackage = async function (deploymentId: number, appVersion: string, packageHash: string, manifestHash: string, blobHash: string, params) {
+type CreatePackageParams = {
+  max_version: string
+  min_version: string
+  releaseMethod?: string // constConfig.RELEAS_EMETHOD_UPLOAD | constConfig.RELEAS_EMETHOD_PROMOTE | constConfig.RELEAS_EMETHOD_ROLLBACK
+  releaseUid?: number
+  isMandatory?: number
+  size?: number
+  rollout?: number
+  description?: string
+  originalLabel?: string
+  isDisabled?: number
+  originalDeployment?: string
+}
+
+export const createPackage = async function (deploymentId: number, appVersion: string, packageHash: string, manifestHash: string, blobHash: string, params: CreatePackageParams) {
   const releaseMethod = params.releaseMethod || constConfig.RELEAS_EMETHOD_UPLOAD;
   const releaseUid = params.releaseUid || 0;
   const isMandatory = params.isMandatory || 0;
@@ -117,7 +134,7 @@ export const createPackage = async function (deploymentId: number, appVersion: s
       manifest_blob_url: manifestHash,
       release_method: releaseMethod,
       label: "v" + labelId,
-      released_by: releaseUid,
+      released_by: String(releaseUid),
       is_mandatory: isMandatory,
       is_disabled: isDisabled,
       rollout: rollout,
@@ -145,7 +162,7 @@ export const createPackage = async function (deploymentId: number, appVersion: s
   });
 };
 
-export const downloadPackageAndExtract = function (workDirectoryPath, packageHash, blobHash) {
+export const downloadPackageAndExtract = function (workDirectoryPath: string, packageHash: string, blobHash: string) {
 
   return dataCenterManager.validateStore(packageHash)
     .then((isValidate) => {
@@ -164,7 +181,7 @@ export const downloadPackageAndExtract = function (workDirectoryPath, packageHas
     });
 }
 
-export const zipDiffPackage = function (fileName, files, baseDirectoryPath, hotCodePushFile) {
+export const zipDiffPackage = function (fileName: string, files: string[], baseDirectoryPath: string, hotCodePushFile: string) {
   return new Promise((resolve, reject) => {
     var zipFile = new yazl.ZipFile();
     var writeStream = fs.createWriteStream(fileName);
@@ -188,13 +205,13 @@ export const zipDiffPackage = function (fileName, files, baseDirectoryPath, hotC
 }
 
 export const generateOneDiffPackage = function (
-  workDirectoryPath,
+  workDirectoryPath: string,
   packageId: number,
-  originDataCenter,
-  oldPackageDataCenter,
-  diffPackageHash,
-  diffManifestBlobHash,
-  isUseDiffText
+  originDataCenter: PackageInfoBuild,
+  oldPackageDataCenter: PackageInfoBuild,
+  diffPackageHash: string,
+  diffManifestBlobHash: string,
+  isUseDiffText: number
 ) {
 
   return models.PackagesDiff.findOne({
@@ -269,8 +286,7 @@ export const generateOneDiffPackage = function (
         });
     });
 };
-
-export const createDiffPackagesByLastNums = async function (appId: number, originalPackage, num: number) {
+export const createDiffPackagesByLastNums = async function (appId: number, originalPackage: PackagesInstance, num: number) {
   const packageId = originalPackage.id;
   const [lastNumsPackages, basePackages, appInfo] = await Promise.all([
     models.Packages.findAll({
@@ -296,7 +312,7 @@ export const createDiffPackagesByLastNums = async function (appId: number, origi
   return createDiffPackages(originalPackage, uniqLastNumPackages, _.get(appInfo, 'is_use_diff_text', constConfig.IS_USE_DIFF_TEXT_NO));
 };
 
-export const createDiffPackages = function (originalPackage, destPackages, isUseDiffText) {
+export const createDiffPackages = function (originalPackage: PackagesInstance, destPackages: PackagesInstance[], isUseDiffText: number) {
   if (!_.isArray(destPackages)) {
     return Promise.reject(new AppError('The second parameter must be an array'));
   }
@@ -331,11 +347,11 @@ export const createDiffPackages = function (originalPackage, destPackages, isUse
     .finally(() => common.deleteFolderSync(workDirectoryPath));
 }
 
-export const releasePackage = async (appId: number, deploymentId: number, packageInfo, filePath: string, releaseUid: number) => {
+export const releasePackage = async (appId: number, deploymentId: number, packageInfo: PackageInfo, filePath: string, releaseUid: number) => {
 
   const appVersion = packageInfo.appVersion;
   const versionInfo = common.validatorVersion(appVersion);
-  if (!versionInfo[0]) {
+  if (!versionInfo.flag) {
     log.debug(`releasePackage targetBinaryVersion ${appVersion} not support.`);
     throw new AppError(`targetBinaryVersion ${appVersion} not support.`)
   }
@@ -393,8 +409,8 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
       rollout: rollout,
       size: stats.size,
       description: description,
-      min_version: versionInfo[1],
-      max_version: versionInfo[2],
+      min_version: versionInfo.min,
+      max_version: versionInfo.max,
     }
     return await createPackage(deploymentId, appVersion, packageHash, manifestHash, blobHash, params);
   }
@@ -403,7 +419,7 @@ export const releasePackage = async (appId: number, deploymentId: number, packag
   }
 };
 
-export const modifyReleasePackage = async function (packageId: number, params) {
+export const modifyReleasePackage = async function (packageId: number, params: PackageInfo) {
   const appVersion = _.get(params, 'appVersion');
   const description = _.get(params, 'description');
   const isMandatory = _.get(params, 'isMandatory');
@@ -416,7 +432,7 @@ export const modifyReleasePackage = async function (packageId: number, params) {
   }
   if (!_.isNull(appVersion)) {
     var versionInfo = common.validatorVersion(appVersion);
-    if (!versionInfo[0]) {
+    if (!versionInfo.flag) {
       throw new AppError(`--targetBinaryVersion ${appVersion} not support.`);
     }
     const [v1, v2] = await bluebird.Promise.all([
@@ -433,16 +449,16 @@ export const modifyReleasePackage = async function (packageId: number, params) {
     await models.DeploymentsVersions.update(
       {
         app_version: appVersion,
-        min_version: Number(versionInfo[1]),
-        max_version: Number(versionInfo[2])
+        min_version: Number(versionInfo.min),
+        max_version: Number(versionInfo.max)
       },
       { where: { id: v2.id } }
     );
   }
 
-  const new_params: any = {
+  const new_params = {
     description: description || packageInfo.description,
-  };
+  } as Partial<PackagesAttributes>;
   if (_.isInteger(rollout)) {
     new_params.rollout = rollout;
   }
@@ -456,7 +472,19 @@ export const modifyReleasePackage = async function (packageId: number, params) {
 
 };
 
-export const promotePackage = async function (sourceDeploymentInfo, destDeploymentInfo, params) {
+export const promotePackage = async function (
+  sourceDeploymentInfo: DeploymentsInstance,
+  destDeploymentInfo: DeploymentsInstance,
+  params: {
+    appVersion?: string,
+    label?: string,
+    description?: string,
+    promoteUid?: number,
+    rollout?: number,
+    isDisabled?: boolean
+    isMandatory?: boolean
+  }
+) {
   const appVersion = _.get(params, 'appVersion', null);
   const label = _.get(params, 'label', null);
 
@@ -515,11 +543,11 @@ export const promotePackage = async function (sourceDeploymentInfo, destDeployme
   }
 
   const versionInfo = common.validatorVersion(appFinalVersion);
-  if (!versionInfo[0]) {
+  if (!versionInfo.flag) {
     log.debug(`targetBinaryVersion ${appVersion} not support.`);
     throw new AppError(`targetBinaryVersion ${appVersion} not support.`);
   }
-  const create_params: any = {
+  const create_params = {
     releaseMethod: constConfig.RELEAS_EMETHOD_PROMOTE,
     releaseUid: params.promoteUid || 0,
     rollout: params.rollout || 100,
@@ -527,9 +555,9 @@ export const promotePackage = async function (sourceDeploymentInfo, destDeployme
     description: params.description || sourcePack.description,
     originalLabel: sourcePack.label,
     originalDeployment: sourceDeploymentInfo.name,
-    min_version: versionInfo[1],
-    max_version: versionInfo[2],
-  };
+    min_version: versionInfo.min,
+    max_version: versionInfo.max,
+  } as CreatePackageParams;
   if (_.isBoolean(params.isMandatory)) {
     create_params.isMandatory = params.isMandatory ? constConfig.IS_MANDATORY_YES : constConfig.IS_MANDATORY_NO;
   } else {
@@ -550,7 +578,7 @@ export const promotePackage = async function (sourceDeploymentInfo, destDeployme
   );
 };
 
-export const rollbackPackage = async function (deploymentVersionId: number, targetLabel, rollbackUid: number) {
+export const rollbackPackage = async function (deploymentVersionId: number, targetLabel: string, rollbackUid: number) {
   const deploymentsVersions = await models.DeploymentsVersions.findByPk(deploymentVersionId)
   if (!deploymentsVersions) {
     throw new AppError("You have not published a version before");
@@ -578,9 +606,9 @@ export const rollbackPackage = async function (deploymentVersionId: number, targ
     description: rollbackPackage.description,
     originalLabel: rollbackPackage.label,
     originalDeployment: '',
-    min_version: deploymentsVersions.min_version,
-    max_version: deploymentsVersions.max_version,
-  };
+    min_version: String(deploymentsVersions.min_version),
+    max_version: String(deploymentsVersions.max_version),
+  } as CreatePackageParams;
   return createPackage(deploymentsVersions.deployment_id,
     deploymentsVersions.app_version,
     rollbackPackage.package_hash,

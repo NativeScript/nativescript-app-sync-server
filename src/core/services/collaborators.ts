@@ -2,29 +2,25 @@ import * as models from '../../models'
 import _ from 'lodash'
 import { AppError } from '../app-error'
 import Sequelize from 'sequelize'
+import { ICollaboratorInstance } from '~/models/collaborators';
 
-export const listCollaborators = function (appId: number) {
-  return models.Collaborators.findAll({ where: { appid: appId } })
-    .then((data) => {
-      return _.reduce(data, function (result: any, value, key) {
-        (result['uids'] || (result['uids'] = [])).push(value.uid)
-        result[value.uid] = value
-        return result;
-      }, []);
-    })
-    .then((coInfo) => {
-      return models.Users.findAll({ where: { id: { [Sequelize.Op.in]: coInfo.uids } } })
-        .then((data2) => {
-          return _.reduce(data2, function (result, value, key) {
-            var permission = "";
-            if (!_.isEmpty(coInfo[value.id])) {
-              permission = coInfo[value.id].roles;
-            }
-            result[value.email] = { permission: permission };
-            return result;
-          }, {});
-        });
-    });
+export const listCollaborators = async function (appId: number) {
+  const data = await models.Collaborators.findAll({ where: { appid: appId } })
+
+  const coInfo = data.reduce((result, value) => {
+    const uids = result.uids.concat(value.uid)
+    return { ...result, uids, [value.uid]: value }
+  }, { uids: [] } as { uids: number[], [key: number]: ICollaboratorInstance })
+
+  const data2 = await models.Users.findAll({ where: { id: { [Sequelize.Op.in]: coInfo.uids } } })
+
+  return data2.reduce((result, value) => {
+    const permission = !_.isEmpty(coInfo[value.id]) ? coInfo[value.id].roles : "";
+    return {
+      ...result,
+      [value.email]: { permission }
+    }
+  }, {} as { [key: string]: { permission: string } })
 }
 
 export const addCollaborator = async (appId: number, uid: number) => {
@@ -35,7 +31,7 @@ export const addCollaborator = async (appId: number, uid: number) => {
       uid: uid,
       roles: "Collaborator"
     })
-    
+
   throw new AppError('user already is Collaborator.')
 }
 
