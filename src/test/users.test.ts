@@ -74,12 +74,12 @@ describe('api/users/users.test.js', function () {
   describe('check register code', function () {
     const token = 'invalid token';
     const account2 = '522539441@qq.com2';
-    let storageToken;
+    let storageToken = '';
     before(async function () {
       const client = await factory.getRedisClient();
       return client.get(registerKey)
         .then(function (t) {
-          storageToken = t;
+          storageToken = t || '';
         })
         .finally(() => {
           client.quit()
@@ -129,12 +129,12 @@ describe('api/users/users.test.js', function () {
   });
 
   describe('sign up', function () {
-    let storageToken;
+    let storageToken = '';
     before(async function () {
       const client = await factory.getRedisClient();
       return client.get(registerKey)
         .then(function (t) {
-          storageToken = t;
+          storageToken = t || '';
         })
         .finally(() => {
           client.quit()
@@ -163,7 +163,7 @@ describe('api/users/users.test.js', function () {
   });
 
   describe('change password', function () {
-    let authToken;
+    let authToken = '';
     before(function (done) {
       request.post('/auth/login')
         .send({
@@ -230,7 +230,7 @@ describe('api/users/users.test.js', function () {
   });
 
   describe('user modules', function () {
-    let authToken;
+    let authToken = '';
     before(function (done) {
       request.post('/auth/login')
         .send({

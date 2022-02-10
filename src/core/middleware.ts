@@ -5,22 +5,24 @@ import moment from 'moment'
 import { AppError, UnauthorizedError } from './app-error'
 import { Op } from 'sequelize'
 import config from './config'
-import jwt from 'jsonwebtoken'
+import jwt, { JwtPayload } from 'jsonwebtoken'
+import { Response, Request, NextFunction } from 'express'
+import { UsersInstance } from '~/models/users'
 
-const checkAuthToken = function (authToken) {
+const checkAuthToken = function (authToken: string) {
   const objToken = security.parseToken(authToken);
   return models.Users.findOne({
     where: { identical: objToken.identical }
   })
     .then((users) => {
-      if (_.isEmpty(users)) {
+      if (!users) {
         throw new UnauthorizedError();
       }
       return models.UserTokens.findOne({
         where: { tokens: authToken, uid: users?.id, expires_at: { [Op.gt]: moment().format('YYYY-MM-DD HH:mm:ss') } }
       })
         .then((tokenInfo) => {
-          if (_.isEmpty(tokenInfo)) {
+          if (!tokenInfo) {
             throw new UnauthorizedError()
           }
           return users;
@@ -30,30 +32,32 @@ const checkAuthToken = function (authToken) {
     })
 }
 
-const checkAccessToken = function (accessToken) {
+const checkAccessToken = function (accessToken: string): Promise<UsersInstance> {
   return new Promise((resolve, reject) => {
     if (_.isEmpty(accessToken)) {
       return reject(new UnauthorizedError());
     }
 
-    var tokenSecret = _.get(config, 'jwt.tokenSecret');
+    const tokenSecret = config.jwt.tokenSecret
 
     try {
-      var authData = jwt.verify(accessToken, tokenSecret);
+      var authData = jwt.verify(accessToken, tokenSecret) as JwtPayload;
     } catch (e) {
       return reject(new UnauthorizedError());
     }
-    var uid = _.get(authData, 'uid', null);
-    var hash = _.get(authData, 'hash', null);
+
+    const uid = authData?.uid
+    const hash = authData?.hash
+
     if (parseInt(uid) > 0) {
       return models.Users.findOne({
         where: { id: uid }
       })
         .then((users) => {
-          if (_.isEmpty(users)) {
+          if (!users) {
             throw new UnauthorizedError();
           }
-          if (!_.eq(hash, security.md5(users?.get('ack_code')))) {
+          if (!_.eq(hash, security.md5(users.get('ack_code')))) {
             throw new UnauthorizedError();
           }
           resolve(users);
@@ -67,8 +71,8 @@ const checkAccessToken = function (accessToken) {
   });
 }
 
-export const checkToken = function (req, res, next) {
-  var authArr = _.split(req.get('Authorization'), ' ');
+export const checkToken = function (req: Request, res: Response, next: NextFunction) {
+  const authArr = _.split(req.get('Authorization'), ' ');
   var authType = 1;
   var authToken = '';
   if (_.eq(authArr[0], 'Bearer')) {

@@ -9,7 +9,7 @@ import jschardet from "jschardet"
 import log4js from 'log4js'
 import path from 'path'
 import AWS from 'aws-sdk'
-import request from 'request'
+import http from 'http'
 
 const log = log4js.getLogger("cps:utils:common")
 
@@ -25,12 +25,12 @@ export const slash = (path: string) => {
 }
 
 
-export const detectIsTextFile = function (filePath) {
-  var fd = fs.openSync(filePath, 'r');
-  var buffer = new Buffer(4096);
+export const detectIsTextFile = function (filePath: string) {
+  const fd = fs.openSync(filePath, 'r');
+  const buffer = Buffer.alloc(4096);
   fs.readSync(fd, buffer, 0, 4096, 0);
   fs.closeSync(fd);
-  var rs = jschardet.detect(buffer);
+  const rs = jschardet.detect(buffer);
   log.debug('detectIsTextFile:', filePath, rs);
   if (rs.confidence == 1) {
     return true;
@@ -38,7 +38,7 @@ export const detectIsTextFile = function (filePath) {
   return false;
 }
 
-export const parseVersion = function (versionNo) {
+export const parseVersion = function (versionNo: string) {
   var version = '0';
   var data = null;
   if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
@@ -95,40 +95,41 @@ export const validatorVersion = function (versionNo: string) {
   //return [flag, min, max]; Mayer changed it from this
 };
 
-export const createFileFromRequest = function (url, filePath) {
+export const createFileFromRequest = function (url: string, filePath: string) {
   return new Promise((resolve, reject) => {
-    fs.exists(filePath, function (exists) {
-      if (!exists) {
-        log.debug(`createFileFromRequest url:${url}`)
-        request(url).on('error', function (error) {
-          reject(error);
-        })
-          .on('response', function (response) {
-            if (response.statusCode == 200) {
-              let stream = fs.createWriteStream(filePath);
-              response.pipe(stream);
-              stream.on('close', function () {
-                resolve(null);
-              });
-              stream.on('error', function (error) {
-                reject(error)
-              })
-            } else {
-              reject({ message: 'request fail' })
-            }
-          });
-      } else {
-        resolve(null);
-      }
-    });
+    const exists = fs.existsSync(filePath)
+
+    if (!exists) {
+      log.debug(`createFileFromRequest url:${url}`)
+
+      http.request(url).on('error', function (error) {
+        reject(error);
+      })
+        .on('response', function (response) {
+          if (response.statusCode == 200) {
+            let stream = fs.createWriteStream(filePath);
+            response.pipe(stream);
+            stream.on('close', function () {
+              resolve(null);
+            });
+            stream.on('error', function (error) {
+              reject(error)
+            })
+          } else {
+            reject({ message: 'request fail' })
+          }
+        });
+    } else {
+      resolve(null);
+    }
   });
 };
 
-export const copySync = function (sourceDst, targertDst) {
+export const copySync = function (sourceDst: string, targertDst: string) {
   return fsextra.copySync(sourceDst, targertDst, { overwrite: true });
 };
 
-export const copy = function (sourceDst, targertDst) {
+export const copy = function (sourceDst: string, targertDst: string) {
   return new Promise((resolve, reject) => {
     fsextra.copy(sourceDst, targertDst, { overwrite: true }, function (err) {
       if (err) {
@@ -142,7 +143,7 @@ export const copy = function (sourceDst, targertDst) {
   });
 };
 
-export const move = function (sourceDst, targertDst) {
+export const move = function (sourceDst: string, targertDst: string) {
   return new Promise((resolve, reject) => {
     fsextra.move(sourceDst, targertDst, { overwrite: true }, function (err) {
       if (err) {
@@ -156,7 +157,7 @@ export const move = function (sourceDst, targertDst) {
   });
 };
 
-export const deleteFolder = function (folderPath) {
+export const deleteFolder = function (folderPath: string) {
   return new Promise((resolve, reject) => {
     fsextra.remove(folderPath, function (err) {
       if (err) {
@@ -170,11 +171,11 @@ export const deleteFolder = function (folderPath) {
   });
 };
 
-export const deleteFolderSync = function (folderPath) {
+export const deleteFolderSync = function (folderPath: string) {
   return fsextra.removeSync(folderPath);
 };
 
-export const createEmptyFolder = function (folderPath) {
+export const createEmptyFolder = function (folderPath: string) {
   return new Promise((resolve, reject) => {
     log.debug(`createEmptyFolder Create dir ${folderPath}`);
     return deleteFolder(folderPath)
@@ -191,7 +192,7 @@ export const createEmptyFolder = function (folderPath) {
   });
 };
 
-export const createEmptyFolderSync = function (folderPath) {
+export const createEmptyFolderSync = function (folderPath: string) {
   deleteFolderSync(folderPath);
   return fsextra.mkdirsSync(folderPath);
 };
@@ -215,8 +216,8 @@ export const unzipFile = async (zipFile: string, outputPath: string) => {
   })
 };
 
-export const uploadFileToStorage = function (key, filePath) {
-  var storageType = _.get(config, 'common.storageType');
+export const uploadFileToStorage = function (key: string, filePath: string) {
+  const storageType = config.common.storageType
   console.log(">>>> storageType: " + storageType);
   console.log(">>>> storageType, key: " + key);
   console.log(">>>> storageType, filePath: " + filePath);
@@ -228,7 +229,7 @@ export const uploadFileToStorage = function (key, filePath) {
   throw new AppError(`${storageType} storageType does not support.`);
 };
 
-export const uploadFileToLocal = function (key, filePath) {
+export const uploadFileToLocal = function (key: string, filePath: string) {
   return new Promise((resolve, reject) => {
     var storageDir = _.get(config, 'local.storageDir');
     if (!storageDir) {
@@ -285,7 +286,7 @@ export const uploadFileToLocal = function (key, filePath) {
   });
 };
 
-export const getBlobDownloadUrl = function (blobUrl) {
+export const getBlobDownloadUrl = function (blobUrl: string) {
   var fileName = blobUrl;
   var storageType = _.get(config, 'common.storageType');
   var downloadUrl = _.get(config, `${storageType}.downloadUrl`);
@@ -300,7 +301,7 @@ export const getBlobDownloadUrl = function (blobUrl) {
   return `${downloadUrl}/${fileName}`
 };
 
-export const uploadFileToS3 = function (key, filePath) {
+export const uploadFileToS3 = function (key: string, filePath: string) {
   console.log(">>>>>> uploadFileToS3 accessKeyId " + _.get(config, 's3.accessKeyId'));
   console.log(">>>>>> uploadFileToS3 secretAccessKey " + _.get(config, 's3.secretAccessKey'));
   console.log(">>>>>> uploadFileToS3 sessionToken " + _.get(config, 's3.sessionToken'));
@@ -314,15 +315,16 @@ export const uploadFileToS3 = function (key, filePath) {
         sessionToken: _.get(config, 's3.sessionToken'),
         region: _.get(config, 's3.region')
       });
-      const s3 = new AWS.S3()
+
 
       fs.readFile(filePath, (err, data) => {
+        const s3 = new AWS.S3()
         s3.upload({
           Bucket: _.get(config, 's3.bucketName'),
           Key: key,
           Body: data,
           ACL: 'public-read',
-        }, (err, response) => {
+        }, {}, (err, response) => {
           console.log(">>>>>> uploadFileToS3 response " + response);
           if (err) {
             console.log(">>>>>> uploadFileToS3 err " + JSON.stringify(err));
@@ -331,12 +333,13 @@ export const uploadFileToS3 = function (key, filePath) {
             resolve(response.ETag)
           }
         })
+
       });
     })
   );
 };
 
-export const diffCollectionsSync = function (collection1, collection2) {
+export const diffCollectionsSync = function (collection1: { [key: string]: unknown }, collection2: { [key: string]: unknown }) {
   var diffFiles: any = [];
   var collection1Only: any = [];
   var newCollection2 = Object.assign({}, collection2);

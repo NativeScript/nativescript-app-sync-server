@@ -14,12 +14,12 @@ import apps from './routes/apps'
 import log4js from 'log4js'
 import dotenv from 'dotenv'
 import * as middleware from "./core/middleware"
-import { UsersAttributes } from "./models/users"
+import { UsersInstance } from "./models/users"
 dotenv.config()
 
 declare global {
   namespace Express {
-    interface Request { users: UsersAttributes }
+    interface Request { users: UsersInstance }
   }
 }
 

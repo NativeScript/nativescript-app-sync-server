@@ -1,4 +1,4 @@
-import express from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import bluebird from 'bluebird'
 import _ from 'lodash'
 import validator from 'validator'
@@ -61,7 +61,7 @@ router.get('/:appName/deployments/:deploymentName',
         return deployments.findDeloymentByName(deploymentName, col.appid)
       })
       .then((deploymentInfo) => {
-        if (_.isEmpty(deploymentInfo)) {
+        if (!deploymentInfo) {
           throw new AppError("does not find the deployment");
         }
         res.send({ deployment: deployments.listDeloyment(deploymentInfo) });
@@ -106,14 +106,14 @@ router.get('/:appName/deployments/:deploymentName/metrics',
       .then((col) => {
         return deployments.findDeloymentByName(deploymentName, col.appid)
           .then((deploymentInfo) => {
-            if (_.isEmpty(deploymentInfo)) {
+            if (!deploymentInfo) {
               throw new AppError("does not find the deployment");
             }
             return deploymentInfo;
           })
       })
       .then((deploymentInfo) => {
-        return deployments.getAllPackageIdsByDeploymentsId(deploymentInfo?.id);
+        return deployments.getAllPackageIdsByDeploymentsId(deploymentInfo.id);
       })
       .then((packagesInfos) => {
         return bluebird.Promise.reduce(packagesInfos, (result, v) => {
@@ -129,7 +129,7 @@ router.get('/:appName/deployments/:deploymentName/metrics',
               }
               return result;
             });
-        }, {});
+        }, {} as { [key: string]: { active: number, downloaded: number, failed: number, installed: number } });
       })
       .then((rs) => {
         res.send({ "metrics": rs });
@@ -152,14 +152,14 @@ router.get('/:appName/deployments/:deploymentName/history',
       .then((col) => {
         return deployments.findDeloymentByName(deploymentName, col.appid)
           .then((deploymentInfo) => {
-            if (_.isEmpty(deploymentInfo)) {
+            if (!deploymentInfo) {
               throw new AppError("does not find the deployment");
             }
             return deploymentInfo;
           });
       })
       .then((deploymentInfo) => {
-        return deployments.getDeploymentHistory(deploymentInfo?.id);
+        return deployments.getDeploymentHistory(deploymentInfo.id);
       })
       .then((rs) => {
         res.send({ history: rs });
@@ -182,14 +182,14 @@ router.delete('/:appName/deployments/:deploymentName/history',
       .then((col) => {
         return deployments.findDeloymentByName(deploymentName, col.appid)
           .then((deploymentInfo) => {
-            if (_.isEmpty(deploymentInfo)) {
+            if (!deploymentInfo) {
               throw new AppError("does not find the deployment");
             }
             return deploymentInfo;
           });
       })
       .then((deploymentInfo) => {
-        return deployments.deleteDeploymentHistory(deploymentInfo?.id);
+        return deployments.deleteDeploymentHistory(deploymentInfo.id);
       })
       .then((rs) => {
         res.send("ok");
@@ -308,11 +308,12 @@ router.patch('/:appName/deployments/:deploymentName/release',
       const col = await accountManager.collaboratorCan(uid, appName)
 
       const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
-      if (_.isEmpty(deploymentInfo)) {
+      if (!deploymentInfo) {
         throw new AppError("does not find the deployment");
       }
 
-      const packageInfo = label ? await packageManager.findPackageInfoByDeploymentIdAndLabel(deploymentInfo?.id, label) : await packageManager.findLatestPackageInfoByDeployVersion(deploymentInfo?.last_deployment_version_id)
+      const packageInfo = label ? await packageManager.findPackageInfoByDeploymentIdAndLabel(deploymentInfo.id, label)
+        : await packageManager.findLatestPackageInfoByDeployVersion(deploymentInfo.last_deployment_version_id)
 
       if (!packageInfo) {
         throw new AppError("does not find the packageInfo");
@@ -322,7 +323,7 @@ router.patch('/:appName/deployments/:deploymentName/release',
       if (_.get(config, 'common.updateCheckCache', false) !== false) {
         await bluebird.Promise.delay(2500)
           .then(() => {
-            clientManager.clearUpdateCheckCache(deploymentInfo?.deployment_key, '*', '*', '*');
+            clientManager.clearUpdateCheckCache(deploymentInfo.deployment_key, '*', '*', '*');
           });
       }
       res.send("");
@@ -386,47 +387,42 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
     }
   });
 
-var rollbackCb = function (req, res, next) {
-  var appName = _.trim(req.params.appName);
-  var deploymentName = _.trim(req.params.deploymentName);
-  var uid = req.users.id;
-  var targetLabel = _.trim(_.get(req, 'params.label'));
-  accountManager.collaboratorCan(uid, appName)
-    .then((col) => {
-      return deployments.findDeloymentByName(deploymentName, col.appid);
-    })
-    .then((dep) => {
-      return packageManager.rollbackPackage(dep?.last_deployment_version_id, targetLabel, uid)
-        .then((packageInfo) => {
-          if (packageInfo) {
-            bluebird.Promise.delay(1000)
-              .then(() => {
-                packageManager.createDiffPackagesByLastNums(dep?.appid, packageInfo, 1)
-                  .catch((e) => {
-                    log.error(e);
-                  });
-              });
-          }
-          //clear cache if exists.
-          if (_.get(config, 'common.updateCheckCache', false) !== false) {
-            bluebird.Promise.delay(2500)
-              .then(() => {
-                clientManager.clearUpdateCheckCache(dep?.deployment_key, '*', '*', '*');
-              });
-          }
-          return packageInfo;
+const rollbackCb = async function (req: Request, res: Response, next: NextFunction) {
+  const appName = _.trim(req.params.appName);
+  const deploymentName = _.trim(req.params.deploymentName);
+  const uid = req.users.id;
+  const targetLabel = _.trim(_.get(req, 'params.label'));
+
+  try {
+    const col = await accountManager.collaboratorCan(uid, appName)
+    const dep = await deployments.findDeloymentByName(deploymentName, col.appid)
+
+    if (!dep)
+      throw new AppError('Cannot find a deployment to rollback')
+
+    const packageInfo = await packageManager.rollbackPackage(dep.last_deployment_version_id, targetLabel, uid)
+
+    if (packageInfo) {
+      packageManager.createDiffPackagesByLastNums(dep.appid, packageInfo, 1)
+        .catch((e) => {
+          log.error(e);
         });
-    })
-    .then(() => {
-      res.send('ok');
-    })
-    .catch((e) => {
-      if (e instanceof AppError) {
-        res.status(406).send(e.message);
-      } else {
-        next(e);
-      }
-    });
+    }
+
+    //clear cache if exists.
+    if (config.common.updateCheckCache !== false) {
+      clientManager.clearUpdateCheckCache(dep.deployment_key, '*', '*', '*');
+    }
+
+    res.send('ok');
+  } catch (e) {
+    if (e instanceof AppError) {
+      res.status(406).send(e.message);
+    } else {
+      next(e);
+    }
+  }
+
 };
 
 router.post('/:appName/deployments/:deploymentName/rollback',
@@ -444,15 +440,11 @@ router.get('/:appName/collaborators',
         return collaborators.listCollaborators(col.appid);
       })
       .then((data) => {
-        const rs = _.reduce(data, (result, value: any, key) => {
-          if (_.eq(key, req.users.email)) {
-            value.isCurrentAccount = true;
-          } else {
-            value.isCurrentAccount = false;
-          }
-          result[key] = value;
-          return result;
-        }, {});
+        const rs = _.reduce(data, (result, value, key) => {
+          const isCurrentAccount = _.eq(key, req.users.email)
+          result[key] = { ...value, isCurrentAccount }
+          return result
+        }, {} as { [key: string]: { permission: string, isCurrentAccount: boolean } });
         res.send({ collaborators: rs });
       })
       .catch((e) => {
@@ -465,62 +457,65 @@ router.get('/:appName/collaborators',
   });
 
 router.post('/:appName/collaborators/:email',
-  function (req, res, next) {
+  async function (req, res, next) {
     const appName = _.trim(req.params.appName)
     const email = _.trim(req.params.email)
     const uid = req.users.id
+
     if (!validator.isEmail(email)) {
       return res.status(406).send("Invalid Email!")
     }
-    accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return accountManager.findUserByEmail(email)
-          .then((data) => {
-            return collaborators.addCollaborator(col.appid, data?.id)
-          })
-      })
-      .then((data) => {
-        res.send(data)
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message)
-        } else {
-          next(e)
-        }
-      })
+
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const user = await accountManager.findUserByEmail(email)
+
+      if (!user)
+        throw new AppError('Cannot find user to collaborate with')
+
+      const data = await collaborators.addCollaborator(col.appid, user?.id)
+      res.send(data)
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message)
+      } else {
+        next(e)
+      }
+    }
+
     return
-  });
+  })
 
 router.delete('/:appName/collaborators/:email',
-  (req, res, next) => {
-    var appName = _.trim(req.params.appName);
-    var email = _.trim(decodeURI(req.params.email));
-    var uid = req.users.id;
+  async (req, res, next) => {
+    const appName = _.trim(req.params.appName);
+    const email = _.trim(decodeURI(req.params.email));
+    const uid = req.users.id;
+
     if (!validator.isEmail(email)) {
       return res.status(406).send("Invalid Email!");
     }
-    accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return accountManager.findUserByEmail(email)
-          .then((data) => {
-            if (_.eq(data?.id, uid)) {
-              throw new AppError("can't delete yourself!");
-            } else {
-              return collaborators.deleteCollaborator(col.appid, data?.id);
-            }
-          });
-      })
-      .then(() => {
-        res.send("");
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const user = await accountManager.findUserByEmail(email)
+
+      if (!user)
+        throw new AppError('Cannot find user to delete')
+
+      if (_.eq(user?.id, uid))
+        throw new AppError("can't delete yourself!");
+
+      await collaborators.deleteCollaborator(col.appid, user.id);
+      res.send("ok");
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
+
     return
   });
 
@@ -576,87 +571,91 @@ router.patch('/:appName',
   });
 
 router.post('/:appName/transfer/:email',
-  (req, res, next) => {
-    var appName = _.trim(req.params.appName);
-    var email = _.trim(req.params.email);
-    var uid = req.users.id;
+  async (req, res, next) => {
+    const appName = _.trim(req.params.appName);
+    const email = _.trim(req.params.email);
+    const uid = req.users.id;
+
     if (!validator.isEmail(email)) {
       return res.status(406).send("Invalid Email!");
     }
-    return accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return accountManager.findUserByEmail(email)
-          .then((data) => {
-            if (_.eq(data?.id, uid)) {
-              throw new AppError("You can't transfer to yourself!");
-            }
-            return appManager.transferApp(col.appid, uid, data?.id);
-          });
-      })
-      .then((data) => {
-        res.send(data);
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
-  });
 
-router.post('/', (req, res, next) => {
-  log.debug("addApp params:", req.body);
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const user = await accountManager.findUserByEmail(email)
 
-  var appName = req.body.name;
-  if (_.isEmpty(appName)) {
-    return res.status(406).send("Please input name!");
-  }
-  var osName = _.toLower(req.body.os);
-  var os;
-  if (osName == _.toLower(constName.IOS_NAME)) {
-    os = constName.IOS;
-  } else if (osName == _.toLower(constName.ANDROID_NAME)) {
-    os = constName.ANDROID;
-  } else if (osName == _.toLower(constName.WINDOWS_NAME)) {
-    os = constName.WINDOWS;
-  } else {
-    return res.status(406).send("Please input os [iOS|Android|Windows]!");
-  }
-  var platformName = _.toLower(req.body.platform);
-  var platform;
-  if (platformName == _.toLower(constName.REACT_NATIVE_NAME)) {
-    platform = constName.REACT_NATIVE;
-  } else if (platformName == _.toLower(constName.CORDOVA_NAME)) {
-    platform = constName.CORDOVA;
-  } else if (platformName == _.toLower(constName.NATIVESCRIPT_NAME)) {
-    platform = constName.NATIVESCRIPT;
-  } else {
-    return res.status(406).send("Please input platform [React-Native|Cordova|NativeScript]!");
-  }
-  var manuallyProvisionDeployments = req.body.manuallyProvisionDeployments;
-  var uid = req.users.id;
+      if (!user)
+        throw new AppError('Cannot find user to delete')
 
-  appManager.findAppByName(uid, appName)
-    .then((appInfo) => {
-      if (!_.isEmpty(appInfo)) {
-        throw new AppError(appName + " Exist!");
+      if (_.eq(user?.id, uid)) {
+        throw new AppError("You can't transfer to yourself!");
       }
-      return appManager.addApp(uid, appName, os, platform, req.users.identical)
-        .then(() => {
-          return { name: appName, collaborators: { [req.users.email]: { permission: "Owner" } } };
-        });
-    })
-    .then((data) => {
-      res.send({ app: data });
-    })
-    .catch((e) => {
+      const data = await appManager.transferApp(col.appid, uid, user.id);
+      res.send(data);
+    } catch (e) {
       if (e instanceof AppError) {
         res.status(406).send(e.message);
       } else {
         next(e);
       }
-    });
+    }
+    return
+  });
+
+router.post('/', async (req, res, next) => {
+  log.debug("addApp params:", req.body);
+
+  const appName = req.body.name;
+  if (!appName) {
+    return res.status(406).send("Please input name!");
+  }
+
+  const osName = _.toLower(req.body.os);
+  const osMap = {
+    [_.toLower(constName.IOS_NAME)]: constName.IOS,
+    [_.toLower(constName.ANDROID_NAME)]: constName.ANDROID,
+    [_.toLower(constName.WINDOWS_NAME)]: constName.WINDOWS
+  }
+
+  const platformMap = {
+    [_.toLower(constName.REACT_NATIVE_NAME)]: constName.REACT_NATIVE,
+    [_.toLower(constName.CORDOVA_NAME)]: constName.CORDOVA,
+    [_.toLower(constName.NATIVESCRIPT_NAME)]: constName.NATIVESCRIPT
+  }
+
+  const os = osMap[osName]
+
+  if (!os)
+    return res.status(406).send("Please input os [iOS|Android|Windows]!");
+
+  const platformName = _.toLower(req.body.platform);
+  const platform = platformMap[platformName];
+
+  if (!platform)
+    return res.status(406).send("Please input platform [React-Native|Cordova|NativeScript]!");
+
+  const manuallyProvisionDeployments = req.body.manuallyProvisionDeployments;
+  const uid = req.users.id;
+
+  try {
+    const appInfo = await appManager.findAppByName(uid, appName)
+    if (appInfo) {
+      throw new AppError(appName + " Exist!");
+    }
+
+    await appManager.addApp(uid, appName, os, platform, req.users.identical)
+
+    const data = { name: appName, collaborators: { [req.users.email]: { permission: "Owner" } } };
+
+    res.send({ app: data });
+  } catch (e) {
+    if (e instanceof AppError) {
+      res.status(406).send(e.message);
+    } else {
+      next(e);
+    }
+  }
+
   return
 });
 

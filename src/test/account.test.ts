@@ -8,7 +8,7 @@ const request = supertest(app)
 
 describe('api/account/account.test.js', function() {
   describe('user modules', function() {
-    var authToken;
+    var authToken = '';
     before(function(done){
       request.post('/auth/login')
       .send({

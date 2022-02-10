@@ -2,7 +2,7 @@
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import * as fs from 'fs'
-import qeTag from '../utils/qetag'
+import qeTagFunc from '../utils/qetag'
 import _, { toPairs } from 'lodash'
 import { mapObjIndexed, mergeAll } from 'ramda'
 import log4js from 'log4js'
@@ -12,6 +12,7 @@ import path from 'path'
 import constName from '../constants'
 import { AppError } from '../app-error'
 import { slash } from './common';
+import { Stream } from 'stream';
 const log = log4js.getLogger("cps:utils:security")
 
 randtoken.generator({
@@ -77,7 +78,7 @@ export const packageHashSync = function (jsonData: { [key: string]: unknown }) {
 }
 
 // The parameter is buffer or readableStream or file path
-export const qetag = function (buffer: fs.PathLike): Promise<string> {
+export const qetag = function (buffer: string | Stream | Buffer): Promise<string> {
   if (typeof buffer === 'string') {
     try {
       log.debug(`Check upload file ${buffer} fs.R_OK`);
@@ -89,12 +90,8 @@ export const qetag = function (buffer: fs.PathLike): Promise<string> {
     }
   }
   log.debug(`generate file identical`)
-  return new Promise((resolve, reject) => {
-    qeTag(buffer, (data) => {
-      log.debug('identical:', data);
-      resolve(data)
-    });
-  });
+
+  return qeTagFunc(buffer)
 }
 
 /**
@@ -190,6 +187,7 @@ export const calcAllFileSha256 = async function (directoryPath: string) {
     if (error instanceof Error || error instanceof AppError)
       throw new AppError(error.message)
   }
+  return
 }
 
 export const sortJsonToArr = function (json: { [key: string]: unknown }) {

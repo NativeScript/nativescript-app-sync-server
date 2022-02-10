@@ -1,84 +1,82 @@
 import crypto from 'crypto'
-import { Stream } from 'stream'
+import { Readable, Stream } from 'stream'
 import fs from 'fs'
+import { range } from 'ramda'
 
 // Calculate the eTag of the file, the parameter is buffer or readableStream or file path
-function getEtag(buffer, callback: (tag: string) => void) {
-
+function getEtag(data: string | Stream | Buffer): Promise<string> {
+	return new Promise((resolve, reject) => { 
 	// Determine whether the incoming parameter is buffer or stream or filepath
-	var mode = 'buffer';
-
-	if (typeof buffer === 'string') {
-		buffer = fs.createReadStream(buffer);
-		mode = 'stream';
-	} else if (buffer instanceof Stream) {
-		mode = 'stream';
+	const getMode = (bufferData: string | Stream | Buffer): Stream | Buffer => {
+		if (typeof bufferData === 'string') {
+			return fs.createReadStream(bufferData)
+		}
+		return bufferData
 	}
 
-	// sha1 algorithm
-	const sha1 = function (content) {
-		var sha1 = crypto.createHash('sha1');
-		sha1.update(content);
-		return sha1.digest();
-	};
+	const buffer = getMode(data)
 
 	// Divide by 4M
-	var blockSize = 4 * 1024 * 1024;
-	var sha1String = [];
-	var prefix = 0x16;
-	var blockCount = 0;
+	const blockSize = 4 * 1024 * 1024
+	const prefix = 0x16
 
-	switch (mode) {
-		case 'buffer':
-			var bufferSize = buffer.length;
-			blockCount = Math.ceil(bufferSize / blockSize);
-
-			for (var i = 0; i < blockCount; i++) {
-				// @ts-ignore
-				sha1String.push(sha1(buffer.slice(i * blockSize, (i + 1) * blockSize)));
+	if (buffer instanceof Stream) {
+		let blockCount = 0
+		const sha1String: Buffer[] = []
+		const stream = buffer
+	
+		stream.on('readable', function() {
+			let chunk;
+			while (chunk = (stream as Readable).read(blockSize)) {
+				sha1String.push(sha1(chunk));
+				blockCount++;
 			}
-			process.nextTick(function () {
-				callback(calcEtag());
-			});
-			break;
-		case 'stream':
-			var stream = buffer;
-			stream.on('readable', function () {
-				var chunk;
-				while (chunk = stream.read(blockSize)) {
-					// @ts-ignore
-					sha1String.push(sha1(chunk));
-					blockCount++;
-				}
-			});
-			stream.on('end', function () {
-				callback(calcEtag());
-			});
-			break;
+		})
+
+		stream.on('end', function () {
+			resolve(calcEtag(sha1String, blockCount, prefix));
+		})
+	}
+	else if (buffer instanceof Buffer) {
+		const bufferSize = buffer.length;
+		const blockCount = Math.ceil(bufferSize / blockSize);
+
+		const sha1String = range(0, blockCount).map(i => {
+			return sha1(buffer.slice(i * blockSize, (i + 1) * blockSize))
+		})
+
+		process.nextTick(function () {
+			resolve(calcEtag(sha1String, blockCount, prefix));
+		});
+	}
+})
+}
+
+// sha1 algorithm
+const sha1 = function (content: crypto.BinaryLike) {
+	const sha1 = crypto.createHash('sha1');
+	sha1.update(content);
+	return sha1.digest();
+}
+
+function calcEtag(sha1String: Buffer[], blockCount: number, prefixParam: 22) {
+	if (!sha1String.length) {
+		return 'Fto5o-5ea0sNMlW_75VgGJCv2AcJ';
 	}
 
-	function calcEtag() {
-		if (!sha1String.length) {
-			return 'Fto5o-5ea0sNMlW_75VgGJCv2AcJ';
-		}
-		var sha1Buffer = Buffer.concat(sha1String, blockCount * 20);
+	// If it is greater than 4M, sha1 the sha1 result of each block again
+	const sha1Raw = Buffer.concat(sha1String, blockCount * 20);
+	const sha1Buffer = blockCount > 1 ? sha1(sha1Raw) : sha1Raw
 
-		// If it is greater than 4M, sha1 the sha1 result of each block again
-		if (blockCount > 1) {
-			prefix = 0x96;
-			sha1Buffer = sha1(sha1Buffer);
-		}
+	const prefix = blockCount > 1 ? 0x96 : prefixParam
 
-		sha1Buffer = Buffer.concat(
-			[new Buffer([prefix]), sha1Buffer],
-			sha1Buffer.length + 1
-		);
 
-		return sha1Buffer.toString('base64')
-			.replace(/\//g, '_').replace(/\+/g, '-');
+	const sha1BufferWithPrefix = Buffer.concat(
+		[Buffer.from([prefix]), sha1Buffer],
+		sha1Buffer.length + 1
+	);
 
-	}
-
+	return sha1BufferWithPrefix.toString('base64').replace(/\//g, '_').replace(/\+/g, '-');
 }
 
 export default getEtag;

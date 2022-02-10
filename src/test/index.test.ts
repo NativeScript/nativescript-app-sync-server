@@ -76,10 +76,10 @@ describe('api/init/database.js', function () {
 describe('api/index/index.test.js', function () {
   const appName = 'Demo-ios';
 
-  let authToken;
-  let deploymentKey;
-  let packageHash;
-  let label;
+  let authToken = '';
+  let deploymentKey = '';
+  let packageHash = '';
+  let label = '';
   before(function (done) {
     request.post('/auth/login')
       .send({ account: TEST_ACCOUNT, password: TEST_PASSWORD })
@@ -100,10 +100,12 @@ describe('api/index/index.test.js', function () {
         .end(function (err, res) {
           should.not.exist(err);
           res.status.should.equal(200);
-          var rs = JSON.parse(res.text);
-          rs.should.have.properties('deployments');
-          rs.deployments.should.be.an.instanceOf(Array);
-          rs.deployments.should.matchEach(function (it) {
+
+          const rs = JSON.parse(res.text);
+
+          should(rs).have.properties('deployments')
+          should(rs.deployments).be.an.instanceOf(Array)
+          should(rs.deployments).matchEach(function (it) {
             if (_.get(it, 'name') == 'Production') {
               deploymentKey = _.get(it, 'key');
               packageHash = _.get(it, 'package.packageHash');

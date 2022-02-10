@@ -188,11 +188,11 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
           return packages;
         })
         .then((packages) => {
-          //增量更新
-          if (!_.isEmpty(packages) && !_.eq(_.get(packages, 'package_hash', ""), packageHash)) {
+          //Incremental update
+          if (packages && !_.eq(_.get(packages, 'package_hash', ""), packageHash)) {
             return models.PackagesDiff.findOne({ where: { package_id: packages?.id, diff_against_package_hash: packageHash } })
               .then((diffPackage) => {
-                if (!_.isEmpty(diffPackage)) {
+                if (diffPackage) {
                   rs.downloadURL = common.getBlobDownloadUrl(_.get(diffPackage, 'diff_blob_url'));
                   rs.downloadUrl = common.getBlobDownloadUrl(_.get(diffPackage, 'diff_blob_url'));
                   rs.packageSize = _.get(diffPackage, 'diff_size', 0);

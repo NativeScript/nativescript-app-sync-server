@@ -49,7 +49,7 @@ router.post('/', (req, res, next) => {
       }
     })
     .then(() => {
-      return accountManager.createAccessKey(uid, newAccessKey, ttl, friendlyName, createdBy, description);
+      return accountManager.createAccessKey(uid, newAccessKey, ttl, friendlyName, String(createdBy), description);
     })
     .then((newToken) => {
       var info = {

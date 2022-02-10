@@ -1,5 +1,4 @@
 import express from 'express'
-import Promise from 'bluebird'
 import _ from 'lodash'
 import * as models from '../models'
 import * as middleware from '../core/middleware'

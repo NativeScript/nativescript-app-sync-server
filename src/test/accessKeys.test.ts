@@ -7,7 +7,7 @@ import { TEST_ACCOUNT, TEST_PASSWORD } from './index.test'
 const request = supertest(app)
 describe('api/accessKeys/accessKeys.test.js', function() {
 
-  var authToken;
+  var authToken = '';
   var friendlyName = 'test';
   var newFriendlyName = 'newtest';
   before(function(done){
@@ -63,12 +63,13 @@ describe('api/accessKeys/accessKeys.test.js', function() {
         should.not.exist(err);
         res.status.should.equal(200);
         var rs = JSON.parse(res.text);
-        rs.should.have.properties('accessKeys');
-        rs.accessKeys.should.be.an.instanceOf(Array);
-        rs.accessKeys.should.matchEach(function(it) {
+        should(rs).have.properties('accessKeys')
+        should(rs.accessKeys).be.an.instanceOf(Array)
+        should(rs.accessKeys).matchEach(function(it) {
           return it.should.have.properties(['name', 'createdTime', 'createdBy',
           'expires', 'description', 'friendlyName']);
         });
+        
         done();
       });
     });
