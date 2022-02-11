@@ -29,7 +29,7 @@ router.post('/login', (req, res, next) => {
     })
     .catch((e) => {
       if (e instanceof AppError) {
-        log.debug(e);
+        log.debug(e.message);
         res.send({ status: 'ERROR', errorMessage: e.message });
       } else {
         next(e);

@@ -9,8 +9,12 @@ import fs from 'fs'
 import path from 'path'
 
 const request = supertest(app)
+
 export const TEST_ACCOUNT = 'test@nativescript.com';
 export const TEST_PASSWORD = 'password123!';
+export let TEST_AUTH_TOKEN = '';
+export let TEST_AUTH_BEARER = '';
+
 export const TEST_COLABORATOR_ACCOUNT = 'colab@nativescript.com';
 
 describe('api/init/database.js', function () {
@@ -75,27 +79,42 @@ describe('api/init/database.js', function () {
 
 describe('api/index/index.test.js', function () {
   const appName = 'Demo-ios';
-
-  let authToken = '';
   let deploymentKey = '';
   let packageHash = '';
   let label = '';
+
   before(function (done) {
+    const machineName = `Login-${Math.random()}`;
+    const friendlyName = `Login-${Math.random()}`;
+
     request.post('/auth/login')
       .send({ account: TEST_ACCOUNT, password: TEST_PASSWORD })
       .end(function (err, res) {
         should.not.exist(err);
         var rs = JSON.parse(res.text);
         rs.should.containEql({ status: "OK" });
-        authToken = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
-        done();
+        TEST_AUTH_TOKEN = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+
+        request.post(`/accessKeys`)
+          .set('Authorization', `Basic ${TEST_AUTH_TOKEN}`)
+          .send({ createdBy: machineName, friendlyName: friendlyName, ttl: 30 * 24 * 60 * 60 })
+          .end(function (err, res) {
+            should.not.exist(err);
+            res.status.should.equal(200);
+            var rs = JSON.parse(res.text);
+            rs.should.have.properties('accessKey');
+            rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
+              'expires', 'description', 'friendlyName']);
+            TEST_AUTH_BEARER = _.get(rs, 'accessKey.name');
+            done();
+          });
       });
   });
 
   describe('list apps all deployments', function () {
     it('should list apps all deployments successful', function (done) {
       request.get(`/apps/${appName}/deployments`)
-        .set('Authorization', `Basic ${authToken}`)
+        .set('Authorization', `Basic ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -121,7 +140,7 @@ describe('api/index/index.test.js', function () {
   describe('authenticated', function () {
     it('should authenticated successful', function (done) {
       request.get(`/authenticated`)
-        .set('Authorization', `Basic ${authToken}`)
+        .set('Authorization', `Basic ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -201,7 +220,7 @@ describe('api/index/index.test.js', function () {
         .expect(200)
         .expect(res => {
           res.text.should.equal(`OK`);
-        }) 
+        })
         .end(done);
     });
   });
@@ -218,7 +237,7 @@ describe('api/index/index.test.js', function () {
         .expect(200)
         .expect(res => {
           res.text.should.equal(`OK`);
-        }) 
+        })
         .end(done)
     });
 
@@ -233,7 +252,7 @@ describe('api/index/index.test.js', function () {
         .expect(200)
         .expect(res => {
           res.text.should.equal(`OK`);
-        }) 
+        })
         .end(done);
     });
   });

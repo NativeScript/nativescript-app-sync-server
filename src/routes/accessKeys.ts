@@ -6,8 +6,6 @@ import * as accountManager from '../core/services/account-manager'
 import { AppError } from '../core/app-error'
 import log4js from 'log4js'
 import moment from 'moment'
-import * as t from 'io-ts'
-import { validateAndDecode } from '~/core/utils/validation'
 
 const log = log4js.getLogger("cps:accessKey")
 const router = express.Router();
@@ -23,22 +21,15 @@ router.get('/', (req, res, next) => {
     })
 });
 
-const CreateAccessKey = t.type({
-  ttl: t.number,
-  description: t.union([t.string, t.undefined]),
-  friendlyName: t.string
-})
-
 router.post('/', (req, res, next) => {
-  const params = validateAndDecode(CreateAccessKey, req.body)
 
   const uid = req.users.id;
   const identical = req.users.identical;
   const createdBy = uid;
 
-  const friendlyName = _.trim(params.friendlyName);
-  const ttl = params.ttl
-  const description = _.trim(params.description);
+  const friendlyName = _.trim(req.body.friendlyName);
+  const ttl = req.body.ttl
+  const description = _.trim(req.body.description);
 
   log.debug(req.body);
   var newAccessKey = security.randToken(28).concat(identical);
