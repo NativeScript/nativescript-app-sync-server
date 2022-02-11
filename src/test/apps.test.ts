@@ -2,7 +2,7 @@ import app from '../app'
 import supertest from 'supertest'
 import should from "should"
 import _ from 'lodash'
-import { TEST_ACCOUNT, TEST_PASSWORD, TEST_COLABORATOR_ACCOUNT, TEST_AUTH_BEARER } from './index.test'
+import { TEST_ACCOUNT, TEST_PASSWORD, TEST_COLABORATOR_ACCOUNT, TEST_AUTH_TOKEN } from './index.test'
 
 const request = supertest(app)
 
@@ -16,18 +16,18 @@ describe('api/apps/apps.test.js', function () {
   describe('add apps', function () {
     it('should not add apps successful when appName is empty', function (done) {
       request.post(`/apps`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({})
         .end(function (err, res) {
           should.not.exist(err);
-          res.status.should.equal(406);
+          should(res.status).equal(406)
           done();
         });
     });
 
     it('should add apps successful', function (done) {
       request.post(`/apps`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: appName, os: 'iOS', platform: 'React-Native' })
         .end(function (err, res) {
           should.not.exist(err);
@@ -41,7 +41,7 @@ describe('api/apps/apps.test.js', function () {
 
     it('should not add apps successful when appName exists', function (done) {
       request.post(`/apps`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: appName, os: 'iOS', platform: 'React-Native' })
         .end(function (err, res) {
           should.not.exist(err);
@@ -55,7 +55,7 @@ describe('api/apps/apps.test.js', function () {
   describe('list apps', function () {
     it('should list apps successful', function (done) {
       request.get(`/apps`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -75,7 +75,7 @@ describe('api/apps/apps.test.js', function () {
   describe('list apps all deployments', function () {
     it('should list apps all deployments successful', function (done) {
       request.get(`/apps/${appName}/deployments`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -96,7 +96,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`create deployments ${testDeployment}`, function () {
     it('should create deployments successful', function (done) {
       request.post(`/apps/${appName}/deployments`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: testDeployment })
         .end(function (err, res) {
           should.not.exist(err);
@@ -110,7 +110,7 @@ describe('api/apps/apps.test.js', function () {
 
     it('should not create deployments successful when deployment exists', function (done) {
       request.post(`/apps/${appName}/deployments`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: testDeployment })
         .end(function (err, res) {
           should.not.exist(err);
@@ -124,7 +124,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`rename deployments ${testDeployment}`, function () {
     it('should rename deployments successful', function (done) {
       request.patch(`/apps/${appName}/deployments/${testDeployment}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: newTestDeployment })
         .end(function (err, res) {
           should.not.exist(err);
@@ -138,7 +138,7 @@ describe('api/apps/apps.test.js', function () {
 
     it('should not rename deployments successful when new deployments name does exists', function (done) {
       request.patch(`/apps/${appName}/deployments/${testDeployment}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: newTestDeployment })
         .end(function (err, res) {
           should.not.exist(err);
@@ -150,7 +150,7 @@ describe('api/apps/apps.test.js', function () {
 
     it('should not rename deployments successful when deployments name does not exists', function (done) {
       request.patch(`/apps/${appName}/deployments/${testDeployment}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: 'hello' })
         .end(function (err, res) {
           should.not.exist(err);
@@ -164,7 +164,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`delete deployments ${newTestDeployment}`, function () {
     it('should delete deployments successful', function (done) {
       request.delete(`/apps/${appName}/deployments/${newTestDeployment}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -178,7 +178,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should not delete deployments successful when ${newTestDeployment} not exists`, function (done) {
       request.delete(`/apps/${appName}/deployments/${newTestDeployment}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -192,7 +192,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`add collaborators`, function () {
     it(`should not add collaborators successful when email invalid`, function (done) {
       request.post(`/apps/${appName}/collaborators/${emailInvalid}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -204,7 +204,7 @@ describe('api/apps/apps.test.js', function () {
 
     it('should add collaborators successful', function (done) {
       request.post(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -215,7 +215,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should not add collaborators successful when ${TEST_COLABORATOR_ACCOUNT} is already a collaborators`, function (done) {
       request.post(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -229,7 +229,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`list collaborators`, function () {
     it('should list collaborators successful', function (done) {
       request.get(`/apps/${appName}/collaborators`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -244,7 +244,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`delete collaborators`, function () {
     it(`should not delete collaborators successful when ${emailInvalid} invalid`, function (done) {
       request.delete(`/apps/${appName}/collaborators/${emailInvalid}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -256,7 +256,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should not delete collaborators successful when email is yourself`, function (done) {
       request.delete(`/apps/${appName}/collaborators/${TEST_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -268,7 +268,7 @@ describe('api/apps/apps.test.js', function () {
 
     it('should delete collaborators successful', function (done) {
       request.delete(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -279,7 +279,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should not delete collaborators successful when ${TEST_COLABORATOR_ACCOUNT} is not a collaborators`, function (done) {
       request.delete(`/apps/${appName}/collaborators/${TEST_COLABORATOR_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -302,14 +302,14 @@ describe('api/apps/apps.test.js', function () {
           should.not.exist(err);
           var rs = JSON.parse(res.text);
           rs.should.containEql({ status: "OK" });
-          authTokenOther = (new Buffer(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+          authTokenOther = Buffer.from(`auth:${_.get(rs, 'results.tokens')}`).toString('base64');
           done();
         });
     });
 
     it(`should not transfer apps successful when ${emailInvalid} invalid`, function (done) {
       request.post(`/apps/${appName}/transfer/${emailInvalid}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -321,7 +321,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should not transfer apps successful when email is yourself`, function (done) {
       request.post(`/apps/${appName}/transfer/${TEST_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -333,7 +333,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should transfer apps successful`, function (done) {
       request.post(`/apps/${appName}/transfer/${TEST_COLABORATOR_ACCOUNT}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -357,7 +357,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`rename apps`, function () {
     it(`should not rename apps successful when new name is invalid`, function (done) {
       request.patch(`/apps/${appName}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -369,7 +369,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should not rename apps successful when new name does exists`, function (done) {
       request.patch(`/apps/${appName}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: appName })
         .end(function (err, res) {
           should.not.exist(err);
@@ -381,7 +381,7 @@ describe('api/apps/apps.test.js', function () {
 
     it(`should rename apps successful`, function (done) {
       request.patch(`/apps/${appName}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send({ name: newAppName })
         .end(function (err, res) {
           should.not.exist(err);
@@ -394,7 +394,7 @@ describe('api/apps/apps.test.js', function () {
   describe(`delete apps`, function () {
     it(`should delete apps successful`, function (done) {
       request.delete(`/apps/${newAppName}`)
-        .set('Authorization', `Bearer ${TEST_AUTH_BEARER}`)
+        .set('Authorization', `Bearer ${TEST_AUTH_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);

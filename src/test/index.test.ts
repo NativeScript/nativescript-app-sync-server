@@ -13,7 +13,8 @@ const request = supertest(app)
 export const TEST_ACCOUNT = 'test@nativescript.com';
 export const TEST_PASSWORD = 'password123!';
 export let TEST_AUTH_TOKEN = '';
-export let TEST_AUTH_BEARER = '';
+export let TEST_AUTH_BASIC_TOKEN = '';
+export let TEST_AUTH_ACCESS_KEY = '';
 
 export const TEST_COLABORATOR_ACCOUNT = 'colab@nativescript.com';
 
@@ -93,10 +94,11 @@ describe('api/index/index.test.js', function () {
         should.not.exist(err);
         var rs = JSON.parse(res.text);
         rs.should.containEql({ status: "OK" });
-        TEST_AUTH_TOKEN = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+        TEST_AUTH_BASIC_TOKEN = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+        TEST_AUTH_TOKEN = _.get(rs, 'results.tokens')
 
         request.post(`/accessKeys`)
-          .set('Authorization', `Basic ${TEST_AUTH_TOKEN}`)
+          .set('Authorization', `Basic ${TEST_AUTH_BASIC_TOKEN}`)
           .send({ createdBy: machineName, friendlyName: friendlyName, ttl: 30 * 24 * 60 * 60 })
           .end(function (err, res) {
             should.not.exist(err);
@@ -105,7 +107,7 @@ describe('api/index/index.test.js', function () {
             rs.should.have.properties('accessKey');
             rs.accessKey.should.have.properties(['name', 'createdTime', 'createdBy',
               'expires', 'description', 'friendlyName']);
-            TEST_AUTH_BEARER = _.get(rs, 'accessKey.name');
+            TEST_AUTH_ACCESS_KEY = _.get(rs, 'accessKey.name');
             done();
           });
       });
@@ -114,7 +116,7 @@ describe('api/index/index.test.js', function () {
   describe('list apps all deployments', function () {
     it('should list apps all deployments successful', function (done) {
       request.get(`/apps/${appName}/deployments`)
-        .set('Authorization', `Basic ${TEST_AUTH_TOKEN}`)
+        .set('Authorization', `Basic ${TEST_AUTH_BASIC_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);
@@ -140,7 +142,7 @@ describe('api/index/index.test.js', function () {
   describe('authenticated', function () {
     it('should authenticated successful', function (done) {
       request.get(`/authenticated`)
-        .set('Authorization', `Basic ${TEST_AUTH_TOKEN}`)
+        .set('Authorization', `Basic ${TEST_AUTH_BASIC_TOKEN}`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);

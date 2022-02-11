@@ -163,7 +163,7 @@ describe('api/users/users.test.js', function () {
   });
 
   describe('change password', function () {
-    let authToken = '';
+    let authBasicToken = '';
     before(function (done) {
       request.post('/auth/login')
         .send({
@@ -174,7 +174,7 @@ describe('api/users/users.test.js', function () {
           should.not.exist(err);
           const rs = JSON.parse(res.text);
           rs.should.containEql({ status: "OK" });
-          authToken = (Buffer.from(`auth:${_.get(rs, 'results.tokens')}`)).toString('base64');
+          authBasicToken = Buffer.from(`auth:${_.get(rs, 'results.tokens')}`).toString('base64');
           done();
         });
     });
@@ -194,7 +194,7 @@ describe('api/users/users.test.js', function () {
 
     it('should not change password successful where password invalid', function (done) {
       request.patch(`/users/password`)
-        .set('Authorization', `Basic ${authToken}`)
+        .set('Authorization', `Basic ${authBasicToken}`)
         .send({ oldPassword: '123321', newPassword: newPassword })
         .end(function (err, res) {
           should.not.exist(err);
@@ -206,7 +206,7 @@ describe('api/users/users.test.js', function () {
 
     it('should not change password successful where new password invalid', function (done) {
       request.patch(`/users/password`)
-        .set('Authorization', `Basic ${authToken}`)
+        .set('Authorization', `Basic ${authBasicToken}`)
         .send({ oldPassword: password, newPassword: '1234' })
         .end(function (err, res) {
           should.not.exist(err);
@@ -218,7 +218,7 @@ describe('api/users/users.test.js', function () {
 
     it('should change password successful', function (done) {
       request.patch(`/users/password`)
-        .set('Authorization', `Basic ${authToken}`)
+        .set('Authorization', `Basic ${authBasicToken}`)
         .send({ oldPassword: password, newPassword: newPassword })
         .end(function (err, res) {
           should.not.exist(err);
