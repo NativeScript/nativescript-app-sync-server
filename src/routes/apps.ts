@@ -13,6 +13,8 @@ import * as common from '../core/utils/common'
 import config from '../core/config'
 import log4js from 'log4js'
 import constName from '../core/constants'
+import { requestValidator } from '~/core/middleware'
+import * as types from '~/iots'
 
 const log = log4js.getLogger("cps:apps");
 
@@ -602,9 +604,9 @@ router.post('/:appName/transfer/:email',
     return
   });
 
-router.post('/', async (req, res, next) => {
+router.post('/', requestValidator(types.CreateAppDec), async (req, res, next) => {
   log.debug("addApp params:", req.body);
-
+  
   const appName = req.body.name;
   if (!appName) {
     return res.status(406).send("Please input name!");

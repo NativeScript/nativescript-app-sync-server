@@ -1,7 +1,9 @@
-import * as D from 'io-ts'
+import * as D from 'io-ts/lib/Decoder';
 
-export const CreateAppDec = D.type({
+export const CreateApp = D.struct({
     name: D.string
 })
 
-export type CreateApp = D.TypeOf<typeof CreateAppDec>;
+export const CreateAppDec = D.struct({
+    body: CreateApp
+})

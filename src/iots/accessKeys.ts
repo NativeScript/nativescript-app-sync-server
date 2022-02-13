@@ -1,7 +1,7 @@
-import * as t from 'io-ts'
+import * as D from 'io-ts/lib/Decoder';
 
-export const CreateAccessKey = t.type({
-    ttl: t.number,
-    description: t.union([t.string, t.undefined]),
-    friendlyName: t.string
+export const CreateAccessKey = D.struct({
+    ttl: D.number,
+    description: D.string,
+    friendlyName: D.string
 })
