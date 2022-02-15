@@ -167,7 +167,7 @@ VALUES (1, 2, 'TestKey', 'WOBavdmnCI4mxQKS6IiCmVtLrwlRGKIM9Vqsy', 2, 'This key w
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` bigint(11) unsigned NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) UNIQUE NOT NULL DEFAULT '',
+  `username` varchar(50) NOT NULL DEFAULT '',
   `password` varchar(255) NOT NULL DEFAULT '',
   `email` varchar(100) NOT NULL DEFAULT '',
   `identical` varchar(10) NOT NULL DEFAULT '',

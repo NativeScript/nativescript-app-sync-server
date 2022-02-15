@@ -58,7 +58,7 @@ describe('api/users/users.test.js', function () {
     it('should not send register code successful when email already exists', function (done) {
       request.post(`/users/registerCode`)
         .send({ email: accountExist })
-        .expect(200)
+        .expect(406)
         .expect((res) => {
           JSON.parse(res.text).should.containEql({
             message: `"${accountExist}" already registered`,
@@ -152,10 +152,10 @@ describe('api/users/users.test.js', function () {
     it('should not sign up successful when password length invalid', function (done) {
       request.post(`/users`)
         .send({ email: account, password: '1234', token: storageToken })
-        .expect(200)
+        .expect(406)
         .expect((result) => {
           const res = JSON.parse(result.text)
-          res.should.containEql({ status: "ERROR", message: `Please enter a password of 6 to 20 digits` });
+          res.should.containEql({ message: 'Please enter a password of 6 to 20 digits' });
         }).end(done)
     });
 
@@ -253,18 +253,6 @@ describe('api/users/users.test.js', function () {
           done();
         });
     });
-
-    it('should get userinfo successful', function (done) {
-      request.get(`/users`)
-        .set('Authorization', `Basic ${authToken}`)
-        .send()
-        .end(function (err, res) {
-          should.not.exist(err);
-          res.status.should.equal(200);
-          done();
-        });
-    });
-
   });
 
 });

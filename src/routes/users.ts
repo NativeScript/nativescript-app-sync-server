@@ -23,21 +23,13 @@ router.post('/',
     const token = _.trim(req.body.token);
     const password = _.trim(req.body.password);
 
-    try {
-      const u = await accountManager.checkRegisterCode(email, token)
-      if (_.isString(password) && password.length < 6) {
-        throw new AppError('Please enter a password of 6 to 20 digits');
-      }
-      await accountManager.register(email, password);
-
-      res.send({ status: "OK" });
-    } catch (e) {
-      if (e instanceof AppError) {
-        res.send({ status: "ERROR", message: e.message });
-      } else {
-        next(e);
-      }
+    await accountManager.checkRegisterCode(email, token)
+    if (password.length < 6) {
+      throw new AppError('Please enter a password of 6 to 20 digits');
     }
+    await accountManager.register(email, password);
+    
+    res.send({ status: "OK" });
   });
 
 router.get('/exists', { query: t.type({ email: t.string }) }, async (req, res, next) => {

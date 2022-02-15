@@ -205,7 +205,7 @@ export const register = function (email: string, password: string) {
       return models.Users.create({
         email: email,
         password: security.passwordHashSync(password),
-        identical: identical
+        identical: identical,
       });
     })
 }

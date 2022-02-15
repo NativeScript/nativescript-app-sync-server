@@ -9,7 +9,7 @@ export class AppError extends Error {
     Error.captureStackTrace(this, constr || this)
     this.message = msg || 'Error'
     this.name = 'AppError'
-    this.status = status || 200
+    this.status = status || 406
   }
 }
 
