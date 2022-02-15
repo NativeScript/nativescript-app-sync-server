@@ -1,12 +1,13 @@
-import express from 'express'
 import { AppError } from '../core/app-error'
 import * as middleware from '../core/middleware'
 import * as clientManager from '../core/services/client-manager'
 import _ from 'lodash'
 import log4js from 'log4js'
+import validationRouter from '~/core/router'
+import * as t from 'io-ts'
 
 const log = log4js.getLogger("cps:index");
-const router = express.Router();
+const router = validationRouter()
 
 router.get('/updateCheck', async (req, res, next) => {
   const deploymentKey = _.get(req, "query.deploymentKey");
@@ -52,14 +53,21 @@ router.post('/reportStatus/download', async (req, res) => {
 
 });
 
-router.post('/reportStatus/deploy', async (req, res) => {
+router.post('/reportStatus/deploy', {
+  body: t.type({
+    clientUniqueId: t.string,
+    deploymentKey: t.string,
+    label: t.string,
+    previousDeploymentKey: t?.string,
+    previousLabelOrAppVersion: t?.string,
+    status: t.union([t.literal('DeploymentSucceeded'), t.literal('DeploymentFailed')])
+  })
+}, async (req, res) => {
   log.debug('req.body', req.body);
-  const clientUniqueId = _.get(req, "body.clientUniqueId");
-  const label = _.get(req, "body.label");
-  const deploymentKey = _.get(req, "body.deploymentKey");
+  const { clientUniqueId, label, deploymentKey, ...other } = req.body
 
   try {
-    clientManager.reportStatusDeploy(deploymentKey, label, clientUniqueId, req.body)
+    clientManager.reportStatusDeploy(deploymentKey, label, clientUniqueId, other)
 
     res.send('OK');
   } catch (err: any) {

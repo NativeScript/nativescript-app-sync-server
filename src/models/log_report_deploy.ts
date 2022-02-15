@@ -10,7 +10,7 @@ interface LogReportDeployAttributes {
   package_id: number;
   client_unique_id: string;
   previous_label: string;
-  previous_deployment_key: number;
+  previous_deployment_key: string;
   created_at?: Date;
 }
 

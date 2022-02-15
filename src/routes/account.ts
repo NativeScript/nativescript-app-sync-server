@@ -1,9 +1,9 @@
-import express from 'express'
 import _ from 'lodash'
 import log4js from 'log4js'
+import validationRouter from '~/core/router'
 
 const log = log4js.getLogger("cps:account")
-const router = express.Router()
+const router = validationRouter()
 
 router.get('/', (req, res) => {
   var userInfo = {

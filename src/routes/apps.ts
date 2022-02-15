@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from 'express'
+import { NextFunction, Request, Response } from 'express'
 import bluebird from 'bluebird'
 import _ from 'lodash'
 import validator from 'validator'
@@ -15,10 +15,13 @@ import log4js from 'log4js'
 import constName from '../core/constants'
 import { requestValidator } from '~/core/middleware'
 import * as types from '~/iots'
+import validationRouter from '~/core/router'
+import * as t from 'io-ts'
+import { keyObject } from '~/core/utils/helpers'
 
 const log = log4js.getLogger("cps:apps");
 
-const router = express.Router();
+const router = validationRouter()
 
 router.get('/', (req, res, next) => {
   var uid = req.users.id;
@@ -35,7 +38,7 @@ router.get('/', (req, res, next) => {
     });
 });
 
-router.get('/:appName/deployments', async (req, res, next) => {
+router.get('/:appName/deployments', { params: t.type({ appName: t.string }) }, async (req, res, next) => {
   const uid = req.users.id;
   const appName = _.trim(req.params.appName);
   log.debug(`/:appName/deployments for app: ${appName}, user: ${uid}`)
@@ -54,201 +57,231 @@ router.get('/:appName/deployments', async (req, res, next) => {
 });
 
 router.get('/:appName/deployments/:deploymentName',
-  (req, res, next) => {
-    var uid = req.users.id;
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        return deployments.findDeloymentByName(deploymentName, col.appid)
-      })
-      .then((deploymentInfo) => {
-        if (!deploymentInfo) {
-          throw new AppError("does not find the deployment");
-        }
-        res.send({ deployment: deployments.listDeloyment(deploymentInfo) });
-        return true;
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string
+    })
+  },
+  async (req, res, next) => {
+    const uid = req.users.id;
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+
+    try {
+      const col = await accountManager.collaboratorCan(uid, appName)
+      const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
+      if (!deploymentInfo) {
+        throw new AppError("does not find the deployment");
+      }
+      res.send({ deployment: deployments.listDeloyment(deploymentInfo) });
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
   });
 
 router.post('/:appName/deployments',
-  (req, res, next) => {
-    var uid = req.users.id;
-    var appName = _.trim(req.params.appName);
-    var name = req.body.name;
-    accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return deployments.addDeloyment(name, col.appid, uid);
-      })
-      .then((data) => {
-        res.send({ deployment: { name: data.name, key: data.deployment_key } });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+  {
+    params: t.type({
+      appName: t.string
+    }),
+    body: t.type({
+      name: t.string
+    })
+  },
+  async (req, res, next) => {
+    const uid = req.users.id;
+    const appName = _.trim(req.params.appName);
+    const name = req.body.name;
+
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const data = await deployments.addDeloyment(name, col.appid, uid);
+
+      res.send({ deployment: { name: data.name, key: data.deployment_key } });
+
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
   });
 
 router.get('/:appName/deployments/:deploymentName/metrics',
-  (req, res, next) => {
-    var uid = req.users.id;
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        return deployments.findDeloymentByName(deploymentName, col.appid)
-          .then((deploymentInfo) => {
-            if (!deploymentInfo) {
-              throw new AppError("does not find the deployment");
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string
+    })
+  },
+  async (req, res, next) => {
+    const uid = req.users.id;
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+
+    try {
+      const col = await accountManager.collaboratorCan(uid, appName)
+      const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
+      if (!deploymentInfo) {
+        throw new AppError("does not find the deployment");
+      }
+
+      const packagesInfos = await deployments.getAllPackageIdsByDeploymentsId(deploymentInfo.id);
+
+      const rs = await bluebird.Promise.reduce(packagesInfos, (result, v) => {
+        return packageManager.getMetricsbyPackageId(v.get('id'))
+          .then((metrics) => {
+            if (metrics) {
+              result[v.get('label')] = {
+                active: metrics.get('active'),
+                downloaded: metrics.get('downloaded'),
+                failed: metrics.get('failed'),
+                installed: metrics.get('installed'),
+              };
             }
-            return deploymentInfo;
-          })
-      })
-      .then((deploymentInfo) => {
-        return deployments.getAllPackageIdsByDeploymentsId(deploymentInfo.id);
-      })
-      .then((packagesInfos) => {
-        return bluebird.Promise.reduce(packagesInfos, (result, v) => {
-          return packageManager.getMetricsbyPackageId(v.get('id'))
-            .then((metrics) => {
-              if (metrics) {
-                result[v.get('label')] = {
-                  active: metrics.get('active'),
-                  downloaded: metrics.get('downloaded'),
-                  failed: metrics.get('failed'),
-                  installed: metrics.get('installed'),
-                };
-              }
-              return result;
-            });
-        }, {} as { [key: string]: { active: number, downloaded: number, failed: number, installed: number } });
-      })
-      .then((rs) => {
-        res.send({ "metrics": rs });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.send({ "metrics": null });
-        } else {
-          next(e);
-        }
-      });
+            return result;
+          });
+      }, {} as { [key: string]: { active: number, downloaded: number, failed: number, installed: number } });
+
+      res.send({ "metrics": rs });
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.send({ "metrics": null });
+      } else {
+        next(e);
+      }
+    }
   });
 
 router.get('/:appName/deployments/:deploymentName/history',
-  (req, res, next) => {
-    var uid = req.users.id;
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    accountManager.collaboratorCan(uid, appName)
-      .then((col) => {
-        return deployments.findDeloymentByName(deploymentName, col.appid)
-          .then((deploymentInfo) => {
-            if (!deploymentInfo) {
-              throw new AppError("does not find the deployment");
-            }
-            return deploymentInfo;
-          });
-      })
-      .then((deploymentInfo) => {
-        return deployments.getDeploymentHistory(deploymentInfo.id);
-      })
-      .then((rs) => {
-        res.send({ history: rs });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string
+    })
+  },
+  async (req, res, next) => {
+    const uid = req.users.id;
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+
+    try {
+      const col = await accountManager.collaboratorCan(uid, appName)
+      const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
+      if (!deploymentInfo) {
+        throw new AppError("does not find the deployment");
+      }
+
+      const rs = await deployments.getDeploymentHistory(deploymentInfo.id);
+
+      res.send({ history: rs });
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
   });
 
 router.delete('/:appName/deployments/:deploymentName/history',
-  (req, res, next) => {
-    var uid = req.users.id;
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return deployments.findDeloymentByName(deploymentName, col.appid)
-          .then((deploymentInfo) => {
-            if (!deploymentInfo) {
-              throw new AppError("does not find the deployment");
-            }
-            return deploymentInfo;
-          });
-      })
-      .then((deploymentInfo) => {
-        return deployments.deleteDeploymentHistory(deploymentInfo.id);
-      })
-      .then((rs) => {
-        res.send("ok");
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string
+    })
+  },
+  async (req, res, next) => {
+    const uid = req.users.id;
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const deploymentInfo = await deployments.findDeloymentByName(deploymentName, col.appid)
+      if (!deploymentInfo) {
+        throw new AppError("does not find the deployment");
+      }
+      await deployments.deleteDeploymentHistory(deploymentInfo.id);
+      res.send("ok");
+
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
   });
 
 router.patch('/:appName/deployments/:deploymentName',
-  (req, res, next) => {
-    var name = req.body.name;
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    var uid = req.users.id;
-    accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return deployments.renameDeloymentByName(deploymentName, col.appid, name);
-      })
-      .then((data) => {
-        res.send({ deployment: data });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+  {
+    body: t.type({
+      name: t.string,
+    }),
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string
+    })
+  },
+  async (req, res, next) => {
+    const name = req.body.name;
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+    const uid = req.users.id;
+
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const data = await deployments.renameDeloymentByName(deploymentName, col.appid, name);
+      res.send({ deployment: data });
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
   });
 
 router.delete('/:appName/deployments/:deploymentName',
-  (req, res, next) => {
-    var appName = _.trim(req.params.appName);
-    var deploymentName = _.trim(req.params.deploymentName);
-    var uid = req.users.id;
-    accountManager.ownerCan(uid, appName)
-      .then((col) => {
-        return deployments.deleteDeloymentByName(deploymentName, col.appid);
-      })
-      .then((data) => {
-        res.send({ deployment: data });
-      })
-      .catch((e) => {
-        if (e instanceof AppError) {
-          res.status(406).send(e.message);
-        } else {
-          next(e);
-        }
-      });
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string
+    })
+  },
+  async (req, res, next) => {
+    const appName = _.trim(req.params.appName);
+    const deploymentName = _.trim(req.params.deploymentName);
+    const uid = req.users.id;
+
+    try {
+
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
+    const col = await accountManager.ownerCan(uid, appName)
+    const data = await deployments.deleteDeloymentByName(deploymentName, col.appid);
+    res.send({ deployment: data });
   });
 
 router.post('/:appName/deployments/:deploymentName/release',
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string,
+    })
+  },
   async (req, res, next) => {
     const appName = _.trim(req.params.appName);
     const deploymentName = _.trim(req.params.deploymentName);
@@ -263,8 +296,6 @@ router.post('/:appName/deployments/:deploymentName/release',
     }
 
     try {
-
-
       const data = await packageManager.parseReqFile(req)
       if (data.package.mimetype != "application/zip") {
         log.debug(`upload file type is invlidate`, data.package);
@@ -299,8 +330,13 @@ router.post('/:appName/deployments/:deploymentName/release',
   });
 
 router.patch('/:appName/deployments/:deploymentName/release',
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string,
+    })
+  },
   async (req, res, next) => {
-    log.debug('req.body', req.body);
     const appName = _.trim(req.params.appName);
     const deploymentName = _.trim(req.params.deploymentName);
     const uid = req.users.id;
@@ -340,8 +376,24 @@ router.patch('/:appName/deployments/:deploymentName/release',
 
 
 router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeploymentName',
+  {
+    params: t.type({
+      appName: t.string,
+      deploymentName: t.string,
+      sourceDeploymentName: t.string,
+      destDeploymentName: t.string,
+      packageInfo: t.type({
+        appVersion?: string,
+        label?: string,
+        description?: string,
+        promoteUid?: number,
+        rollout?: number,
+        isDisabled?: boolean
+        isMandatory?: boolean
+      }),
+    })
+  },
   async (req, res, next) => {
-    log.debug('req.body:', req.body);
     const appName = _.trim(req.params.appName);
     const sourceDeploymentName = _.trim(req.params.sourceDeploymentName);
     const destDeploymentName = _.trim(req.params.destDeploymentName);
@@ -434,6 +486,11 @@ router.post('/:appName/deployments/:deploymentName/rollback/:label',
   rollbackCb);
 
 router.get('/:appName/collaborators',
+  {
+    params: t.type({
+      appName: t.string,
+    })
+  },
   (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var uid = req.users.id;
@@ -459,6 +516,12 @@ router.get('/:appName/collaborators',
   });
 
 router.post('/:appName/collaborators/:email',
+  {
+    params: t.type({
+      appName: t.string,
+      email: t.string,
+    })
+  },
   async function (req, res, next) {
     const appName = _.trim(req.params.appName)
     const email = _.trim(req.params.email)
@@ -489,6 +552,12 @@ router.post('/:appName/collaborators/:email',
   })
 
 router.delete('/:appName/collaborators/:email',
+  {
+    params: t.type({
+      appName: t.string,
+      email: t.string,
+    })
+  },
   async (req, res, next) => {
     const appName = _.trim(req.params.appName);
     const email = _.trim(decodeURI(req.params.email));
@@ -522,6 +591,11 @@ router.delete('/:appName/collaborators/:email',
   });
 
 router.delete('/:appName',
+  {
+    params: t.type({
+      appName: t.string
+    })
+  },
   (req, res, next) => {
     var appName = _.trim(req.params.appName);
     var uid = req.users.id;
@@ -542,37 +616,46 @@ router.delete('/:appName',
   });
 
 router.patch('/:appName',
-  (req, res, next) => {
-    var newAppName = _.trim(req.body.name);
-    var appName = _.trim(req.params.appName);
-    var uid = req.users.id;
-    if (_.isEmpty(newAppName)) {
+  {
+    params: t.type({
+      appName: t.string
+    }),
+    body: t.type({
+      name: t.string
+    })
+  },
+  async (req, res, next) => {
+    const newAppName = _.trim(req.body.name);
+    const appName = _.trim(req.params.appName);
+    const uid = req.users.id;
+    if (!newAppName) {
       return res.status(406).send("Please input name!");
-    } else {
-      return accountManager.ownerCan(uid, appName)
-        .then((col) => {
-          return appManager.findAppByName(uid, newAppName)
-            .then((appInfo) => {
-              if (!_.isEmpty(appInfo)) {
-                throw new AppError(newAppName + " Exist!");
-              }
-              return appManager.modifyApp(col.appid, { name: newAppName });
-            });
-        })
-        .then(() => {
-          res.send("");
-        })
-        .catch((e) => {
-          if (e instanceof AppError) {
-            res.status(406).send(e.message);
-          } else {
-            next(e);
-          }
-        });
+    }
+
+    try {
+      const col = await accountManager.ownerCan(uid, appName)
+      const appInfo = await appManager.findAppByName(uid, newAppName)
+      if (appInfo) {
+        throw new AppError(newAppName + " Exist!");
+      }
+      await appManager.modifyApp(col.appid, { name: newAppName });
+      res.send("");
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
     }
   });
 
 router.post('/:appName/transfer/:email',
+  {
+    params: t.type({
+      appName: t.string,
+      email: t.string
+    })
+  },
   async (req, res, next) => {
     const appName = _.trim(req.params.appName);
     const email = _.trim(req.params.email);
@@ -604,61 +687,59 @@ router.post('/:appName/transfer/:email',
     return
   });
 
-router.post('/', requestValidator(types.CreateAppDec), async (req, res, next) => {
-  log.debug("addApp params:", req.body);
-  
-  const appName = req.body.name;
-  if (!appName) {
-    return res.status(406).send("Please input name!");
-  }
+router.post('/',
+  {
+    body: t.type({
+      name: t.string,
+      platform: t.keyof(keyObject([constName.REACT_NATIVE_NAME, constName.CORDOVA_NAME, constName.NATIVESCRIPT_NAME])),
+      os: t.keyof(keyObject([constName.IOS_NAME, constName.ANDROID_NAME, constName.WINDOWS_NAME])),
+      // manuallyProvisionDeployments: t?.boolean
+    })
+  },
+  async (req, res, next) => {
+    const appName = req.body.name;
+    const osName = _.toLower(req.body.os);
+    const platformName = _.toLower(req.body.platform);
 
-  const osName = _.toLower(req.body.os);
-  const osMap = {
-    [_.toLower(constName.IOS_NAME)]: constName.IOS,
-    [_.toLower(constName.ANDROID_NAME)]: constName.ANDROID,
-    [_.toLower(constName.WINDOWS_NAME)]: constName.WINDOWS
-  }
-
-  const platformMap = {
-    [_.toLower(constName.REACT_NATIVE_NAME)]: constName.REACT_NATIVE,
-    [_.toLower(constName.CORDOVA_NAME)]: constName.CORDOVA,
-    [_.toLower(constName.NATIVESCRIPT_NAME)]: constName.NATIVESCRIPT
-  }
-
-  const os = osMap[osName]
-
-  if (!os)
-    return res.status(406).send("Please input os [iOS|Android|Windows]!");
-
-  const platformName = _.toLower(req.body.platform);
-  const platform = platformMap[platformName];
-
-  if (!platform)
-    return res.status(406).send("Please input platform [React-Native|Cordova|NativeScript]!");
-
-  const manuallyProvisionDeployments = req.body.manuallyProvisionDeployments;
-  const uid = req.users.id;
-
-  try {
-    const appInfo = await appManager.findAppByName(uid, appName)
-    if (appInfo) {
-      throw new AppError(appName + " Exist!");
+    const osMap = {
+      [_.toLower(constName.IOS_NAME)]: constName.IOS,
+      [_.toLower(constName.ANDROID_NAME)]: constName.ANDROID,
+      [_.toLower(constName.WINDOWS_NAME)]: constName.WINDOWS
     }
 
-    await appManager.addApp(uid, appName, os, platform, req.users.identical)
-
-    const data = { name: appName, collaborators: { [req.users.email]: { permission: "Owner" } } };
-
-    res.send({ app: data });
-  } catch (e) {
-    if (e instanceof AppError) {
-      res.status(406).send(e.message);
-    } else {
-      next(e);
+    const platformMap = {
+      [_.toLower(constName.REACT_NATIVE_NAME)]: constName.REACT_NATIVE,
+      [_.toLower(constName.CORDOVA_NAME)]: constName.CORDOVA,
+      [_.toLower(constName.NATIVESCRIPT_NAME)]: constName.NATIVESCRIPT
     }
-  }
 
-  return
-});
+    const os = osMap[osName]
+
+    const platform = platformMap[platformName];
+
+    // const manuallyProvisionDeployments = req.body.manuallyProvisionDeployments;
+    const uid = req.users.id;
+
+    try {
+      const appInfo = await appManager.findAppByName(uid, appName)
+      if (appInfo) {
+        throw new AppError(appName + " Exist!");
+      }
+
+      await appManager.addApp(uid, appName, os, platform, req.users.identical)
+
+      const data = { name: appName, collaborators: { [req.users.email]: { permission: "Owner" } } };
+
+      res.send({ app: data });
+    } catch (e) {
+      if (e instanceof AppError) {
+        res.status(406).send(e.message);
+      } else {
+        next(e);
+      }
+    }
+
+    return
+  });
 
 export default router;

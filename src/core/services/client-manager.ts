@@ -248,66 +248,55 @@ export const reportStatusDownload = function (deploymentKey: string, label: stri
 };
 
 // TODO fix others type
-export const reportStatusDeploy = function (deploymentKey: string, label: string, clientUniqueId: string, others: unknown) {
-  return getPackagesInfo(deploymentKey, label)
-    .then((packages) => {
-      const statusText = _.get(others, "status");
-      var status = 0;
-      if (_.eq(statusText, "DeploymentSucceeded")) {
-        status = constConfig.DEPLOYMENT_SUCCEEDED;
-      } else if (_.eq(statusText, "DeploymentFailed")) {
-        status = constConfig.DEPLOYMENT_FAILED;
-      }
-      const packageId = Number(packages?.id);
-      const previous_deployment_key = _.get(others, 'previousDeploymentKey');
-      const previous_label = _.get(others, 'previousLabelOrAppVersion');
-      if (status > 0) {
-        return Promise.all([
-          models.LogReportDeploy.create({
-            package_id: packageId,
-            client_unique_id: clientUniqueId,
-            previous_label: previous_label,
-            previous_deployment_key: previous_deployment_key,
-            status: status
-          }),
-          models.PackagesMetrics.findOne({ where: { package_id: packageId } })
-            .then((metrics) => {
-              if (_.isEmpty(metrics)) {
-                return;
-              }
-              if (constConfig.DEPLOYMENT_SUCCEEDED) {
-                return metrics?.increment(['installed', 'active'], { by: 1 });
-              } else {
-                return metrics?.increment(['installed', 'failed'], { by: 1 });
-              }
-            })
-        ])
-          .then(() => {
-            if (previous_deployment_key && previous_label) {
-              return models.Deployments.findOne({ where: { deployment_key: previous_deployment_key } })
-                .then((dep) => {
-                  if (_.isEmpty(dep)) {
-                    return;
-                  }
-                  return models.Packages.findOne({ where: { deployment_id: dep?.id, label: previous_label } })
-                    .then((p) => {
-                      if (_.isEmpty(p)) {
-                        return;
-                      }
-                      return models.PackagesMetrics.findOne({ where: { package_id: p?.id } });
-                    });
-                })
-                .then((metrics) => {
-                  if (metrics) {
-                    return metrics.decrement('active');
-                  }
-                  return;
-                });
-            }
-            return;
-          });
-      } else {
-        return;
-      }
-    });
+type ReportStatusDeployOthers = {
+  previousDeploymentKey?: string
+  previousLabelOrAppVersion?: string
+  status?: 'DeploymentSucceeded' | 'DeploymentFailed'
+}
+export const reportStatusDeploy = async function (deploymentKey: string, label: string, clientUniqueId: string, others?: ReportStatusDeployOthers) {
+  const packages = await getPackagesInfo(deploymentKey, label)
+  const statusText = others?.status
+
+  const statusMap = {
+    'DeploymentSucceeded': constConfig.DEPLOYMENT_SUCCEEDED,
+    'DeploymentFailed': constConfig.DEPLOYMENT_FAILED
+  }
+
+  const status = statusText ? statusMap[statusText] : 0;
+  const packageId = Number(packages?.id);
+  const previous_deployment_key = others?.previousDeploymentKey || ''
+  const previous_label = others?.previousLabelOrAppVersion || ''
+
+  if (status <= 0)
+    return
+
+  await Promise.all([
+    models.LogReportDeploy.create({
+      package_id: packageId,
+      client_unique_id: clientUniqueId,
+      previous_label,
+      previous_deployment_key,
+      status: status
+    }),
+    models.PackagesMetrics.findOne({ where: { package_id: packageId } })
+      .then((metrics) => {
+        if (_.isEmpty(metrics)) {
+          return;
+        }
+        if (status === constConfig.DEPLOYMENT_SUCCEEDED) {
+          return metrics?.increment(['installed', 'active'], { by: 1 });
+        } else {
+          return metrics?.increment(['installed', 'failed'], { by: 1 });
+        }
+      })
+  ])
+
+  if (previous_deployment_key && previous_label) {
+    const dep = await models.Deployments.findOne({ where: { deployment_key: previous_deployment_key } })
+    const p = dep ? await models.Packages.findOne({ where: { deployment_id: dep?.id, label: previous_label } }) : null
+    const metrics = p ? await models.PackagesMetrics.findOne({ where: { package_id: p?.id } }) : null
+
+    if (metrics) return metrics.decrement('active');
+  }
+  return;
 };
