@@ -141,9 +141,6 @@ const EXPIRED = 1200;
 const EXPIRED_SPEED = 10;
 
 export const sendRegisterCode = function (email: string) {
-  if (_.isEmpty(email)) {
-    return Promise.reject(new AppError("Please enter your email address"));
-  }
   return models.Users.findOne({ where: { email: email } })
     .then((u) => {
       if (u) {

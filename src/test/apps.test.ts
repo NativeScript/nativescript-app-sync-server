@@ -20,7 +20,7 @@ describe('api/apps/apps.test.js', function () {
         .send({})
         .end(function (err, res) {
           should.not.exist(err);
-          should(res.status).equal(406)
+          should(res.status).equal(400)
           done();
         });
     });
@@ -361,8 +361,7 @@ describe('api/apps/apps.test.js', function () {
         .send()
         .end(function (err, res) {
           should.not.exist(err);
-          res.status.should.equal(406);
-          res.text.should.equal(`Please input name!`);
+          res.status.should.equal(400);
           done();
         });
     });

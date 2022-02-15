@@ -1,108 +1,104 @@
-import express from 'express'
 import _ from 'lodash'
 import * as models from '../models'
 import * as middleware from '../core/middleware'
 import * as accountManager from '../core/services/account-manager'
 import { AppError } from '../core/app-error'
 import log4js from 'log4js'
+import validationRouter from '~/core/router'
+import * as t from '~/core/utils/iots'
 
-const router = express.Router();
+const router = validationRouter();
 const log = log4js.getLogger("cps:account");
 
-router.get('/', middleware.checkToken, (req, res) => {
-  res.send({ title: 'AppSync Server' });
-});
+router.post('/',
+  {
+    body: t.type({
+      email: t.string,
+      token: t.string,
+      password: t.string
+    })
+  },
+  async (req, res, next) => {
+    const email = _.trim(req.body.email);
+    const token = _.trim(req.body.token);
+    const password = _.trim(req.body.password);
 
-router.post('/', (req, res, next) => {
-  var email = _.trim(_.get(req, 'body.email'));
-  var token = _.trim(_.get(req, 'body.token'));
-  var password = _.trim(_.get(req, 'body.password'));
-  return accountManager.checkRegisterCode(email, token)
-    .then((u) => {
+    try {
+      const u = await accountManager.checkRegisterCode(email, token)
       if (_.isString(password) && password.length < 6) {
         throw new AppError('Please enter a password of 6 to 20 digits');
       }
-      return accountManager.register(email, password);
-    })
-    .then(() => {
+      await accountManager.register(email, password);
+
       res.send({ status: "OK" });
-    })
-    .catch((e) => {
+    } catch (e) {
       if (e instanceof AppError) {
         res.send({ status: "ERROR", message: e.message });
       } else {
         next(e);
       }
-    });
+    }
+  });
+
+router.get('/exists', { query: t.type({ email: t.string }) }, async (req, res, next) => {
+  const email = _.trim(req.query.email);
+
+  try {
+    const u = await models.Users.findOne({ where: { email: email } })
+    if (!email) {
+      throw new AppError(`Please enter your email address`);
+    }
+    res.send({ status: "OK", exists: u ? true : false });
+
+  } catch (e) {
+    if (e instanceof AppError) {
+      res.send({ status: "ERROR", message: e.message });
+    } else {
+      next(e);
+    }
+  }
+
 });
 
-router.get('/exists', (req, res, next) => {
-  var email = _.trim(_.get(req, 'query.email'));
-  models.Users.findOne({ where: { email: email } })
-    .then((u) => {
-      if (!email) {
-        throw new AppError(`Please enter your email address`);
-      }
-      res.send({ status: "OK", exists: u ? true : false });
-    })
-    .catch((e) => {
-      if (e instanceof AppError) {
-        res.send({ status: "ERROR", message: e.message });
-      } else {
-        next(e);
-      }
-    });
-});
-
-router.post('/registerCode', (req, res, next) => {
-  var email = _.get(req, 'body.email');
+router.post('/registerCode', { body: t.type({ email: t.string }) }, async (req, res, next) => {
+  const email = req.body.email
   log.debug('registerCode called for email:', email);
 
-  return accountManager.sendRegisterCode(email)
-    .then(() => {
-      res.send({ status: "OK" });
-    })
-    .catch((e) => {
-      if (e instanceof AppError) {
-        res.send({ status: "ERROR", message: e.message });
-      } else {
-        next(e);
-      }
-    });
+  await accountManager.sendRegisterCode(email)
+  res.send({ status: "OK" });
 });
 
-router.get('/registerCode/exists', (req, res, next) => {
-  var email = _.trim(_.get(req, 'query.email'));
-  var token = _.trim(_.get(req, 'query.token'));
-  return accountManager.checkRegisterCode(email, token)
-    .then(() => {
-      res.send({ status: "OK" });
-    })
-    .catch((e) => {
-      if (e instanceof AppError) {
-        res.send({ status: "ERROR", message: e.message });
-      } else {
-        next(e);
-      }
-    });
+router.get('/registerCode/exists', { query: t.type({ email: t.string, token: t.optional(t.string) }) }, async (req, res, next) => {
+  const { email, token } = req.query
+
+  try {
+    await accountManager.checkRegisterCode(email, token || '')
+    res.send({ status: "OK" });
+  } catch (e) {
+    if (e instanceof AppError) {
+      res.send({ status: "ERROR", message: e.message });
+    } else {
+      next(e);
+    }
+  }
 });
 
 //change Password
-router.patch('/password', middleware.checkToken, (req, res, next) => {
-  var oldPassword = _.trim(_.get(req, 'body.oldPassword'));
-  var newPassword = _.trim(_.get(req, 'body.newPassword'));
-  var uid = req.users.id;
-  return accountManager.changePassword(uid, oldPassword, newPassword)
-    .then(() => {
-      res.send({ status: "OK" });
-    })
-    .catch((e) => {
-      if (e instanceof AppError) {
-        res.send({ status: "ERROR", message: e.message });
-      } else {
-        next(e);
-      }
-    });
+router.patch('/password', { body: t.type({ oldPassword: t.string, newPassword: t.string }) }, middleware.checkToken as any, async (req, res, next) => {
+  const oldPassword = _.trim(req.body.oldPassword);
+  const newPassword = _.trim(req.body.newPassword);
+  const uid = req.users.id;
+
+  try {
+    await accountManager.changePassword(uid, oldPassword, newPassword)
+    res.send({ status: "OK" });
+  } catch (e) {
+    if (e instanceof AppError) {
+      res.send({ status: "ERROR", message: e.message });
+    } else {
+      next(e);
+    }
+  }
 });
 
 export default router;

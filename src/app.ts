@@ -1,6 +1,4 @@
-import express from 'express'
-import cookieParser from 'cookie-parser'
-import bodyParser from 'body-parser'
+import express, { ErrorRequestHandler } from 'express'
 import helmet from 'helmet'
 import config from './core/config'
 import _ from 'lodash'
@@ -15,6 +13,7 @@ import log4js from 'log4js'
 import dotenv from 'dotenv'
 import * as middleware from "./core/middleware"
 import { UsersInstance } from "./models/users"
+import { AppError } from './core/app-error'
 dotenv.config()
 
 declare global {
@@ -32,12 +31,11 @@ const log = log4js.getLogger("cps:app");
 const app = express();
 
 app.use(helmet());
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
 app.disable('x-powered-by');
 app.use(log4js.connectLogger(log4js.getLogger("http"), { level: log4js.levels.INFO.levelStr, nolog: '\\.gif|\\.jpg|\\.js|\\.css$' }));
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
 
 //use nginx in production
 //if (app.get('env') === 'development') {
@@ -83,6 +81,14 @@ app.use('/accessKeys', middleware.checkToken, accessKeys);
 app.use('/account', middleware.checkToken, account);
 app.use('/apps', middleware.checkToken, apps);
 app.use('/users', users);
+
+const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
+  if (err instanceof AppError)
+    res.status(err.status).json(err)
+  else
+    res.status(500).json('Internal Server Error')
+}
+app.use(errorHandler);
 
 export default app
 

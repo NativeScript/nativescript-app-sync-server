@@ -13,10 +13,8 @@ import * as common from '../core/utils/common'
 import config from '../core/config'
 import log4js from 'log4js'
 import constName from '../core/constants'
-import { requestValidator } from '~/core/middleware'
-import * as types from '~/iots'
 import validationRouter from '~/core/router'
-import * as t from 'io-ts'
+import * as t from '~/core/utils/iots'
 import { keyObject } from '~/core/utils/helpers'
 
 const log = log4js.getLogger("cps:apps");
@@ -262,7 +260,9 @@ router.delete('/:appName/deployments/:deploymentName',
     const uid = req.users.id;
 
     try {
-
+      const col = await accountManager.ownerCan(uid, appName)
+      const data = await deployments.deleteDeloymentByName(deploymentName, col.appid);
+      res.send({ deployment: data });
     } catch (e) {
       if (e instanceof AppError) {
         res.status(406).send(e.message);
@@ -270,9 +270,7 @@ router.delete('/:appName/deployments/:deploymentName',
         next(e);
       }
     }
-    const col = await accountManager.ownerCan(uid, appName)
-    const data = await deployments.deleteDeloymentByName(deploymentName, col.appid);
-    res.send({ deployment: data });
+
   });
 
 router.post('/:appName/deployments/:deploymentName/release',
@@ -296,7 +294,7 @@ router.post('/:appName/deployments/:deploymentName/release',
     }
 
     try {
-      const data = await packageManager.parseReqFile(req)
+      const data = await packageManager.parseReqFile(req as any) // TODO fix this type
       if (data.package.mimetype != "application/zip") {
         log.debug(`upload file type is invlidate`, data.package);
         throw new AppError("upload file type is invalidate");
@@ -382,15 +380,17 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
       deploymentName: t.string,
       sourceDeploymentName: t.string,
       destDeploymentName: t.string,
+    }),
+    body: t.type({
       packageInfo: t.type({
-        appVersion?: string,
-        label?: string,
-        description?: string,
-        promoteUid?: number,
-        rollout?: number,
-        isDisabled?: boolean
-        isMandatory?: boolean
-      }),
+        appVersion: t.optional(t.string),
+        label: t.optional(t.string),
+        description: t.optional(t.string),
+        promoteUid: t.optional(t.number),
+        rollout: t.optional(t.number),
+        isDisabled: t.optional(t.boolean),
+        isMandatory: t.optional(t.boolean)
+      })
     })
   },
   async (req, res, next) => {
@@ -628,9 +628,6 @@ router.patch('/:appName',
     const newAppName = _.trim(req.body.name);
     const appName = _.trim(req.params.appName);
     const uid = req.users.id;
-    if (!newAppName) {
-      return res.status(406).send("Please input name!");
-    }
 
     try {
       const col = await accountManager.ownerCan(uid, appName)
@@ -693,7 +690,7 @@ router.post('/',
       name: t.string,
       platform: t.keyof(keyObject([constName.REACT_NATIVE_NAME, constName.CORDOVA_NAME, constName.NATIVESCRIPT_NAME])),
       os: t.keyof(keyObject([constName.IOS_NAME, constName.ANDROID_NAME, constName.WINDOWS_NAME])),
-      // manuallyProvisionDeployments: t?.boolean
+      // manuallyProvisionDeployments: t.optional(t.boolean)
     })
   },
   async (req, res, next) => {

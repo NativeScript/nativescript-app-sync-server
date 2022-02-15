@@ -21,7 +21,10 @@ describe('api/users/users.test.js', function () {
         .send()
         .end(function (err, res) {
           should.not.exist(err);
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: "Please enter your email address" });
+          should(JSON.parse(res.text)).containEql({
+            message: 'Expecting string at email but instead got: undefined',
+            name: 'IoTsValidationError'
+          })
           done();
         });
     });
@@ -42,9 +45,12 @@ describe('api/users/users.test.js', function () {
     it('should not send register code successful when not input email', function (done) {
       request.post(`/users/registerCode`)
         .send({})
-        .expect(200)
+        .expect(400)
         .expect((res) => {
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: "Please enter your email address" });
+          should(JSON.parse(res.text)).containEql({
+            message: 'Expecting string at email but instead got: undefined',
+            name: 'IoTsValidationError'
+          });
         })
         .end(done)
     });
@@ -54,7 +60,9 @@ describe('api/users/users.test.js', function () {
         .send({ email: accountExist })
         .expect(200)
         .expect((res) => {
-          JSON.parse(res.text).should.containEql({ status: "ERROR", message: `"${accountExist}" already registered` });
+          JSON.parse(res.text).should.containEql({
+            message: `"${accountExist}" already registered`,
+          });
         })
         .end(done)
     });
@@ -87,7 +95,7 @@ describe('api/users/users.test.js', function () {
     });
 
     it('should not check register code successful when email already exists', function (done) {
-      request.get(`/users/registerCode/exists?email=${accountExist}`)
+      request.get(`/users/registerCode/exists?email=${accountExist}&token=`)
         .send()
         .end(function (err, res) {
           should.not.exist(err);

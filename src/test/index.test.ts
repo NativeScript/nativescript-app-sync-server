@@ -101,6 +101,7 @@ describe('api/index/index.test.js', function () {
           .set('Authorization', `Basic ${TEST_AUTH_BASIC_TOKEN}`)
           .send({ createdBy: machineName, friendlyName: friendlyName, ttl: 30 * 24 * 60 * 60 })
           .end(function (err, res) {
+            console.log('🚀 ~ file: index.test.ts ~ line 104 ~ err', err)
             should.not.exist(err);
             res.status.should.equal(200);
             var rs = JSON.parse(res.text);
@@ -215,7 +216,7 @@ describe('api/index/index.test.js', function () {
     it('should reportStatus download successful', function (done) {
       request.post(`/reportStatus/download`)
         .send({
-          clientUniqueId: Math.random(),
+          clientUniqueId: Math.random().toString(),
           label,
           deploymentKey
         })
@@ -231,7 +232,7 @@ describe('api/index/index.test.js', function () {
     it('should reportStatus deploy successful', function (done) {
       request.post(`/reportStatus/deploy`)
         .send({
-          clientUniqueId: Math.random(),
+          clientUniqueId: Math.random().toString(),
           label: label,
           deploymentKey: deploymentKey,
           status: 'DeploymentSucceeded'
@@ -246,7 +247,7 @@ describe('api/index/index.test.js', function () {
     it('should reportStatus deploy successful', function (done) {
       request.post(`/reportStatus/deploy`)
         .send({
-          clientUniqueId: Math.random(),
+          clientUniqueId: Math.random().toString(),
           label,
           deploymentKey,
           status: 'DeploymentFailed'

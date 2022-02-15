@@ -1,4 +1,4 @@
-import * as t from 'io-ts'
+import * as t from '~/core/utils/iots'
 import _ from 'lodash'
 import * as security from '../core/utils/security'
 import * as models from '../models'
@@ -24,8 +24,8 @@ router.get('/', (req, res, next) => {
 
 router.post('/', {
   body: t.type({
-    friendlyName: t?.string,
-    description: t?.string,
+    friendlyName: t.optional(t.string),
+    description: t.optional(t.string),
     ttl: t.number
   })
 }, async (req, res, next) => {

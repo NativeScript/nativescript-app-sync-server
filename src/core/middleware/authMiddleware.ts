@@ -3,20 +3,11 @@ import * as security from '../utils/security'
 import * as models from '../../models'
 import moment from 'moment'
 import { AppError, UnauthorizedError } from '../app-error'
-import { CITEXT, Op } from 'sequelize'
+import { Op } from 'sequelize'
 import config from '../config'
 import jwt, { JwtPayload } from 'jsonwebtoken'
-import { Response, Request, NextFunction, RequestHandler } from 'express'
+import { Response, Request, NextFunction } from 'express'
 import { UsersInstance } from '~/models/users'
-import * as t from 'io-ts';
-import * as D from 'io-ts/lib/Decoder';
-import { Reporter } from 'io-ts/lib/Reporter';
-import * as array from 'fp-ts/lib/Array';
-import { Decoder } from 'io-ts/lib/Decoder';
-import { pipe } from 'fp-ts/lib/function';
-import { fold } from 'fp-ts/lib/Either';
-import { ParamsDictionary } from 'express-serve-static-core';
-import { prop } from 'ramda'
 
 const checkAuthToken = function (authToken: string) {
   const objToken = security.parseToken(authToken);
@@ -80,7 +71,7 @@ const checkAccessToken = function (accessToken: string): Promise<UsersInstance> 
   });
 }
 
-export const checkToken = () => (req: Request, res: Response, next: NextFunction) => {
+export const checkToken = (req: Request, res: Response, next: NextFunction) => {
   const authArr = _.split(req.get('Authorization'), ' ');
   var authType = 1;
   var authToken = '';

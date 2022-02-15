@@ -10,16 +10,7 @@ import {
   RouterOptions,
 } from "express";
 import expressPromiseRouter from "express-promise-router";
-
-export class IoTsValidationError extends Error {
-  statusCode = 400;
-  name = "IoTsValidationError";
-
-  constructor(message: string) {
-    super(message);
-    this.message = message;
-  }
-}
+import { IoTsValidationError } from "./app-error";
 
 type Omit<O, K> = Pick<O, Exclude<keyof O, K>>;
 

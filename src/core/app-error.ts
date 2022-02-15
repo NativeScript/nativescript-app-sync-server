@@ -1,7 +1,7 @@
 export class AppError extends Error {
   status: number;
   
-  constructor(msg?: string, constr?: any) {
+  constructor(msg: string, status?: number, constr?: any) {
     super()
     if (msg) {
       msg = msg.toString();
@@ -9,40 +9,22 @@ export class AppError extends Error {
     Error.captureStackTrace(this, constr || this)
     this.message = msg || 'Error'
     this.name = 'AppError'
-    this.status = 200
+    this.status = status || 200
   }
 }
 
-export class InvalidInputError extends Error {
-  status: number;
-  
-  constructor(msg?: string, constr?: any) {
-    super()
-    if (msg) {
-      msg = msg.toString();
-    }
-    Error.captureStackTrace(this, constr || this)
-    this.message = msg || 'Error'
-    this.name = 'InvalidInputError'
-    this.status = 400
-  }
-}
+export class IoTsValidationError extends AppError {
+  status = 400;
+  name = "IoTsValidationError";
 
-export class NotFoundError extends AppError {
-  constructor(msg?: string, constr?: any) {
-    super(msg, constr)
-    if (msg) {
-      msg = msg.toString();
-    }
-    Error.captureStackTrace(this, constr || this)
-    this.message = msg || 'Not Found';
-    this.name = 'NotFoundError'
-    this.status = 404
+  constructor(message: string) {
+    super(message);
+    this.message = message;
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(msg?: string, constr?: any) {
+  constructor(msg = '', constr?: any) {
     super(msg, constr)
   
     this.message = msg || `401 Unauthorized`;

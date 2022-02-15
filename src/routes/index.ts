@@ -1,10 +1,11 @@
+import { Response, Request } from "express-serve-static-core";
 import { AppError } from '../core/app-error'
 import * as middleware from '../core/middleware'
 import * as clientManager from '../core/services/client-manager'
 import _ from 'lodash'
 import log4js from 'log4js'
 import validationRouter from '~/core/router'
-import * as t from 'io-ts'
+import * as t from '~/core/utils/iots'
 
 const log = log4js.getLogger("cps:index");
 const router = validationRouter()
@@ -36,10 +37,16 @@ router.get('/updateCheck', async (req, res, next) => {
   }
 });
 
-router.post('/reportStatus/download', async (req, res) => {
-  const clientUniqueId = _.get(req, "body.clientUniqueId");
-  const label = _.get(req, "body.label");
-  const deploymentKey = _.get(req, "body.deploymentKey");
+router.post('/reportStatus/download', {
+  body: t.type({
+    clientUniqueId: t.string,
+    label: t.string,
+    deploymentKey: t.string,
+  })
+}, async (req, res) => {
+  const clientUniqueId = req.body.clientUniqueId
+  const label = req.body.label
+  const deploymentKey = req.body.deploymentKey
 
   try {
     await clientManager.reportStatusDownload(deploymentKey, label, clientUniqueId)
@@ -58,8 +65,8 @@ router.post('/reportStatus/deploy', {
     clientUniqueId: t.string,
     deploymentKey: t.string,
     label: t.string,
-    previousDeploymentKey: t?.string,
-    previousLabelOrAppVersion: t?.string,
+    previousDeploymentKey: t.optional(t.string),
+    previousLabelOrAppVersion: t.optional(t.string),
     status: t.union([t.literal('DeploymentSucceeded'), t.literal('DeploymentFailed')])
   })
 }, async (req, res) => {
@@ -78,7 +85,7 @@ router.post('/reportStatus/deploy', {
 
 });
 
-router.get('/authenticated', middleware.checkToken, (req, res) => {
+router.get('/authenticated', middleware.checkToken, (req: Request, res: Response) => {
   return res.send({ authenticated: true, user: _.pick(req.users, ['email', 'username', 'id']) });
 });
 
