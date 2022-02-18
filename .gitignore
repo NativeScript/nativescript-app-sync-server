@@ -1,3 +1,9 @@
+dist/
+
+# env files
+.env
+.env.prod
+
 # Logs
 logs
 *.log
