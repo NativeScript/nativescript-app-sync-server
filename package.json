@@ -35,7 +35,6 @@
     "eslint": "eslint lint",
     "test": "NODE_ENV=test ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
     "preinstall": "npm i -g pm2 && pm2 install pm2-logrotate",
-    "postinstall": "npm run build"
   },
   "dependencies": {
     "aws-sdk": "^2.1073.0",
