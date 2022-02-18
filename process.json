@@ -3,7 +3,7 @@
     {
       "name": "nativescript-app-sync-server",
       "max_memory_restart": "300M",
-      "script": "./bin/www",
+      "script": "./dist/server.js",
       "instances": "1",
       "exec_mode": "fork",
       "env": {
