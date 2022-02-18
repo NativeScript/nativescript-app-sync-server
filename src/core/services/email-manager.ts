@@ -49,10 +49,10 @@ export const sendEmail = ({
   cc?: string
   bcc?: string
   attachments?: any
-  _dangerousSendEmails?: boolean
 }) => {
+  const sendEmailAddress = auth.user
   let mailOptions = {
-    from: `"${displayName}" <noreply@finitydevelopment.com>`, // sender address
+    from: `"${displayName}" <${sendEmailAddress}>`, // sender address
     to: to, // list of receivers, comma delimted
     cc,
     bcc,
@@ -66,8 +66,8 @@ export const sendEmail = ({
 
   // If they have Office365 you can send from any email on that domain (it does not have to be a valid email account), heres how
   // 1. go to https://admin.exchange.microsoft.com/#/connectors
-  // 2. Choose these settings, From: Your organization's email server, To: Office 365 then whitelist your IPs (this could be your dev enironment or production apps IPs)
-  // 3. your all setup, no auth is required when whitelistsed just be careful who is whitelisted
+  // 2. Choose these settings, From: Your organization's email server, To: Office 365 then whitelist your apps outbound IPs or app domain
+  // 3. your all setup, no auth is required when whitelistsed just be careful who is whitelisted because they can send from any email on your server
   // 4. Use This Transport:
   // 	  const transporter = nodemailer.createTransport(
   // 	  	new SMTPTransport({
@@ -82,7 +82,8 @@ export const sendEmail = ({
       host,
       port: Number(port),
       auth,
-      secure
+      secure,
+      tls
     })
   )
 
@@ -97,6 +98,7 @@ export const sendEmail = ({
 }
 export const sendRegisterCode = function (email: string, code: string) {
   return sendEmail({
+    displayName: 'AppSync Registration',
     to: email,
     html: `<div>Your verification code: <em style="color:red;">${code}</em> (valid for 20 minutes)</div>`
   });
