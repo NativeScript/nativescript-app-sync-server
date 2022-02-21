@@ -4,7 +4,7 @@ import crypto from 'crypto'
 import * as fs from 'fs'
 import qeTagFunc from '../utils/qetag'
 import _, { toPairs } from 'lodash'
-import { mapObjIndexed, mergeAll } from 'ramda'
+import { takeLast, mergeAll } from 'ramda'
 import log4js from 'log4js'
 import randtoken from 'rand-token'
 import recursive from "recursive-readdir"
@@ -14,11 +14,6 @@ import { AppError } from '../app-error'
 import { slash } from './common';
 import { Stream } from 'stream';
 const log = log4js.getLogger("cps:utils:security")
-
-randtoken.generator({
-  chars: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  source: crypto.randomBytes
-})
 
 export const md5 = function (str: string) {
   const md5sum = crypto.createHash('md5');
@@ -36,11 +31,14 @@ export const passwordVerifySync = function (password: string, hash: string) {
 }
 
 export const randToken = function (num: number) {
-  return randtoken.generate(num);
+  return randtoken.generator({
+    chars: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    source: crypto.randomBytes
+  }).generate(num);
 }
 
 export const parseToken = function (token: string) {
-  return { identical: token.substring(-9, 9), token: token.substring(0, 28) }
+  return { identical: takeLast(9, token), token: token.substring(0, 28) }
 }
 
 export const fileSha256 = function (file: fs.PathLike) {

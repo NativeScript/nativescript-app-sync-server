@@ -9,27 +9,23 @@ import jwt, { JwtPayload } from 'jsonwebtoken'
 import { Response, Request, NextFunction } from 'express'
 import { UsersInstance } from '~/models/users'
 
-const checkAuthToken = function (authToken: string) {
+const checkAuthToken = async function (authToken: string) {
   const objToken = security.parseToken(authToken);
-  return models.Users.findOne({
+  const users = await models.Users.findOne({
     where: { identical: objToken.identical }
   })
-    .then((users) => {
-      if (!users) {
-        throw new UnauthorizedError();
-      }
-      return models.UserTokens.findOne({
-        where: { tokens: authToken, uid: users?.id, expires_at: { [Op.gt]: moment().format('YYYY-MM-DD HH:mm:ss') } }
-      })
-        .then((tokenInfo) => {
-          if (!tokenInfo) {
-            throw new UnauthorizedError()
-          }
-          return users;
-        })
-    }).then((users) => {
-      return users;
-    })
+
+  if (!users)
+    throw new UnauthorizedError();
+
+  const tokenInfo = await models.UserTokens.findOne({
+    where: { tokens: authToken, uid: users.id, expires_at: { [Op.gt]: moment().format('YYYY-MM-DD HH:mm:ss') } }
+  })
+
+  if (!tokenInfo)
+    throw new UnauthorizedError()
+
+  return users
 }
 
 const checkAccessToken = function (accessToken: string): Promise<UsersInstance> {
