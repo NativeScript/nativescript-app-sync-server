@@ -46,7 +46,7 @@ export default {
      */
     tryLoginTimes: 3,
     // CodePush Web(https://github.com/lisong/code-push-web) login address.
-    codePushWebUrl: process.env.WEB_APP_URL || "http://localhost:3000",
+    webAppUrl: process.env.WEB_APP_URL || "http://localhost:3000",
     // create patch updates's number. default value is 3
     diffNums: 3,
     // data dir for caclulate diff files. it's optimization.
