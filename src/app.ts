@@ -9,6 +9,7 @@ import accessKeys from './routes/accessKeys'
 import account from './routes/account'
 import users from './routes/users'
 import apps from './routes/apps'
+import redirects from './routes/redirects'
 import log4js from 'log4js'
 import dotenv from 'dotenv'
 import * as middleware from "./core/middleware"
@@ -76,6 +77,7 @@ if (_.get(config, 'common.storageType') === 'local') {
 }
 
 app.use('/', routes);
+app.use('/', redirects);
 app.use('/auth', auth);
 app.use('/accessKeys', middleware.checkToken, accessKeys);
 app.use('/account', middleware.checkToken, account);
