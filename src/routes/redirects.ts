@@ -4,12 +4,12 @@ import validationRouter from '~/core/router'
 
 const router = validationRouter()
 
-router.get('/login', (req, res) => {
+router.get('/auth/login', (req, res) => {
     const codePushWebUrl = config.common.webAppUrl
     res.redirect(`${codePushWebUrl}/auth/login`);
 });
 
-router.get('/register', (req, res) => {
+router.get('/auth/register', (req, res) => {
     const codePushWebUrl = config.common.webAppUrl
     res.redirect(`${codePushWebUrl}/register`);
 });
