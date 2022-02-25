@@ -377,7 +377,6 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
   {
     params: t.type({
       appName: t.string,
-      deploymentName: t.string,
       sourceDeploymentName: t.string,
       destDeploymentName: t.string,
     }),
