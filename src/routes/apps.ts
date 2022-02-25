@@ -382,13 +382,13 @@ router.post('/:appName/deployments/:sourceDeploymentName/promote/:destDeployment
     }),
     body: t.type({
       packageInfo: t.type({
-        appVersion: t.optional(t.string),
-        label: t.optional(t.string),
+        appVersion: t.nullable(t.string),
+        label: t.nullable(t.string),
         description: t.optional(t.string),
         promoteUid: t.optional(t.number),
         rollout: t.optional(t.number),
-        isDisabled: t.optional(t.boolean),
-        isMandatory: t.optional(t.boolean)
+        isDisabled: t.nullable(t.boolean),
+        isMandatory: t.nullable(t.boolean)
       })
     })
   },

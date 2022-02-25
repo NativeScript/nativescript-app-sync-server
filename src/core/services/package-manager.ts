@@ -476,13 +476,13 @@ export const promotePackage = async function (
   sourceDeploymentInfo: DeploymentsInstance,
   destDeploymentInfo: DeploymentsInstance,
   params: {
-    appVersion?: string,
-    label?: string,
-    description?: string,
-    promoteUid?: number,
-    rollout?: number,
-    isDisabled?: boolean
-    isMandatory?: boolean
+    appVersion: string | null
+    label: string | null
+    description?: string
+    promoteUid?: number
+    rollout?: number
+    isDisabled: boolean | null
+    isMandatory: boolean | null
   }
 ) {
   const appVersion = _.get(params, 'appVersion', null);
