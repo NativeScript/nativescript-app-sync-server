@@ -5,7 +5,7 @@ import * as common from '../utils/common'
 import constConfig from '../constants';
 import { getRedisClient } from '../utils/redis'
 import { AppError } from '../app-error'
-import * as config from '../config'
+import config from '../config'
 import log4js from 'log4js'
 import Sequelize from 'sequelize'
 
@@ -37,35 +37,28 @@ export const clearUpdateCheckCache = async function (deploymentKey: string, appV
 }
 
 export const updateCheckFromCache = async function (deploymentKey: string, appVersion: string, label: string, packageHash: string, clientUniqueId: number) {
-  var updateCheckCache = _.get(config, 'common.updateCheckCache', false);
-  if (updateCheckCache === false) {
+  const updateCheckCache = config.common.updateCheckCache
+  if (!updateCheckCache) {
     return updateCheck(deploymentKey, appVersion, label, packageHash);
   }
-  let redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
+  const redisCacheKey = getUpdateCheckCacheKey(deploymentKey, appVersion, label, packageHash);
   const client = await getRedisClient()
+  try {
+    const data = await client.get(redisCacheKey)
+    log.debug('updateCheckFromCache read from cache');
+    if (data) {
+      const obj = JSON.parse(data);
+      return obj as UpdateCheckResponse
+    }
 
-  return client.get(redisCacheKey)
-    .then((data) => {
-      if (data) {
-        try {
-          log.debug('updateCheckFromCache read from catch');
-          var obj = JSON.parse(data);
-          return obj;
-        } catch (e) {
-        }
-      }
-      return updateCheck(deploymentKey, appVersion, label, packageHash, clientUniqueId)
-        .then((rs) => {
-          try {
-            log.debug('updateCheckFromCache read from db');
-            var strRs = JSON.stringify(rs);
-            client.setEx(redisCacheKey, EXPIRED, strRs);
-          } catch (e) {
-          }
-          return rs;
-        });
-    })
-    .finally(() => client.quit());
+    const rs = await updateCheck(deploymentKey, appVersion, label, packageHash, clientUniqueId)
+    log.debug('updateCheckFromCache read from db');
+    const strRs = JSON.stringify(rs);
+    client.setEx(redisCacheKey, EXPIRED, strRs);
+    return rs
+  } finally {
+    client.quit()
+  }
 }
 
 export const getChosenManCacheKey = function (packageId: number, rollout: number, clientUniqueId: number) {
@@ -85,33 +78,49 @@ export const chosenMan = async function (packageId: number, rollout: number, cli
   if (rollout >= 100) {
     return Promise.resolve(true);
   }
-  var rolloutClientUniqueIdCache = _.get(config, 'common.rolloutClientUniqueIdCache', false);
-  if (rolloutClientUniqueIdCache === false) {
+  const rolloutClientUniqueIdCache = config.common.rolloutClientUniqueIdCache
+  if (!rolloutClientUniqueIdCache) {
     return random(rollout);
   } else {
     const client = await getRedisClient()
     const redisCacheKey = getChosenManCacheKey(packageId, rollout, clientUniqueId);
-    return client.get(redisCacheKey)
-      .then((data) => {
-        if (Number(data) == 1) {
-          return true;
-        } else if (Number(data) == 2) {
-          return false;
-        } else {
-          return random(rollout)
-            .then((r) => {
-              return client.setEx(redisCacheKey as any, 60 * 60 * 24 * 7, r ? '1' : '2')
-                .then(() => {
-                  return r;
-                });
-            });
-        }
-      })
-      .finally(() => client.quit());
+
+    try {
+      const data = await client.get(redisCacheKey)
+
+      if (Number(data) == 1) {
+        return true;
+      } else if (Number(data) == 2) {
+        return false;
+      } else {
+        const r = await random(rollout)
+        await client.setEx(redisCacheKey, 60 * 60 * 24 * 7, r ? '1' : '2')
+        return r;
+      }
+
+    } catch (error) {
+      client.quit()
+    }
+    return
   }
 }
 
-export const updateCheck = function (deploymentKey: string, appVersion: string, label: string, packageHash: string, clientUniqueId?: number) {
+type UpdateCheckResponse = {
+  packageId: number;
+  downloadURL: string;
+  downloadUrl: string;
+  description: string;
+  isAvailable: boolean;
+  isMandatory: boolean;
+  appVersion: string;
+  packageHash: string;
+  label: string;
+  packageSize: number;
+  updateAppVersion: boolean;
+  shouldRunBinaryVersion: boolean;
+  rollout: number;
+}
+export const updateCheck = (deploymentKey: string, appVersion: string, label: string, packageHash: string, clientUniqueId?: number): Promise<UpdateCheckResponse> => {
   var rs = {
     packageId: 0,
     downloadURL: "",
@@ -119,7 +128,7 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
     description: "",
     isAvailable: false,
     isMandatory: false,
-    appVersion: appVersion,
+    appVersion,
     packageHash: "",
     label: "",
     packageSize: 0,
@@ -133,13 +142,14 @@ export const updateCheck = function (deploymentKey: string, appVersion: string, 
   }
   return models.Deployments.findOne({ where: { deployment_key: deploymentKey } })
     .then((dep) => {
-      if (_.isEmpty(dep)) {
+      if (!dep) {
         throw new AppError('Not found deployment, check deployment key is right.');
       }
-      var version = common.parseVersion(appVersion);
+      const version = common.parseVersion(appVersion);
+      console.log('🚀 ~ file: client-manager.ts ~ line 149 ~ .then ~ version', version)
       return models.DeploymentsVersions.findAll({
         where: {
-          deployment_id: dep?.id,
+          deployment_id: dep.id,
           min_version: { [Sequelize.Op.lte]: version },
           max_version: { [Sequelize.Op.gt]: version }
         }

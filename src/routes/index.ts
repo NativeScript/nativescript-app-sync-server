@@ -6,6 +6,7 @@ import _ from 'lodash'
 import log4js from 'log4js'
 import validationRouter from '~/core/router'
 import * as t from '~/core/utils/iots'
+import { omit } from "ramda";
 
 const log = log4js.getLogger("cps:index");
 const router = validationRouter()
@@ -25,9 +26,7 @@ router.get('/updateCheck', async (req, res, next) => {
       rs.isAvailable = false;
     }
 
-    delete rs.packageId;
-    delete rs.rollout;
-    res.send({ "updateInfo": rs });
+    res.send({ "updateInfo": omit(['packageId', 'rollout'], rs) });
   } catch (e) {
     if (e instanceof AppError) {
       res.status(404).send(e.message);

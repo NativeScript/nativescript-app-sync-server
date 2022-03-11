@@ -63,17 +63,17 @@ export const validatorVersion = function (versionNo: string) {
     // "1.2.3"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = data[1] + _.padStart(data[2], 5, '0') + _.padStart((String(data[3]) + 1), 10, '0');
+    max = data[1] + _.padStart(data[2], 5, '0') + _.padStart(String(parseInt(data[3]) + 1), 10, '0');
   } else if (data = versionNo.match(/^([0-9]{1,3}).([0-9]{1,5})(\.\*){0,1}$/)) {
     // "1.2" "1.2.*"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart('0', 10, '0');
-    max = data[1] + _.padStart((String(data[2]) + 1), 5, '0') + _.padStart('0', 10, '0');
+    max = data[1] + _.padStart(String(parseInt(data[2]) + 1), 5, '0') + _.padStart('0', 10, '0');
   } else if (data = versionNo.match(/^\~([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     //"~1.2.3"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = data[1] + _.padStart((String(data[2]) + 1), 5, '0') + _.padStart('0', 10, '0');
+    max = data[1] + _.padStart(String(parseInt(data[2]) + 1), 5, '0') + _.padStart('0', 10, '0');
   } else if (data = versionNo.match(/^\^([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     //"^1.2.3"
     flag = true;
@@ -83,7 +83,7 @@ export const validatorVersion = function (versionNo: string) {
     // "1.2.3 - 1.2.7"
     flag = true;
     min = data[1] + _.padStart(data[2], 5, '0') + _.padStart(data[3], 10, '0');
-    max = data[4] + _.padStart(data[5], 5, '0') + _.padStart((String(data[6]) + 1), 10, '0');
+    max = data[4] + _.padStart(data[5], 5, '0') + _.padStart(String(parseInt(data[6]) + 1), 10, '0');
   } else if (data = versionNo.match(/^>=([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})\s?<([0-9]{1,3}).([0-9]{1,5}).([0-9]{1,10})$/)) {
     // ">=1.2.3 <1.2.7"
     flag = true;
@@ -91,8 +91,6 @@ export const validatorVersion = function (versionNo: string) {
     max = data[4] + _.padStart(data[5], 5, '0') + _.padStart(data[6], 10, '0');
   }
   return { flag, min, max };
-
-  //return [flag, min, max]; Mayer changed it from this
 };
 
 export const createFileFromRequest = function (url: string, filePath: string) {
