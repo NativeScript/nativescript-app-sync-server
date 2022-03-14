@@ -51,7 +51,7 @@ describe('run seeds', function () {
     });
 
     it('should run seeds', function (done) {
-      const sql = fs.readFileSync(path.resolve(__dirname, '../../sql/codepush-all.sql'), 'utf-8');
+      const sql = fs.readFileSync(path.resolve(__dirname, '../../sql/seeds.sql'), 'utf-8');
       connection.query(sql, function (err, results) {
         should.not.exist(err);
         done();

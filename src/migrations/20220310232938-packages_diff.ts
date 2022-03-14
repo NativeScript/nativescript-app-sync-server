@@ -23,7 +23,7 @@ module.exports = {
             allowNull: false,
             defaultValue: ''
           },
-          blob_url: {
+          diff_blob_url: {
             type: DataTypes.STRING({ length: 255 }),
             allowNull: false,
             defaultValue: ''
