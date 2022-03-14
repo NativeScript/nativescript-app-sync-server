@@ -1,6 +1,6 @@
 import { QueryInterface, DataTypes, Sequelize } from '@sequelize/core';
 
-const tableName = 'apps'
+const tableName = 'users'
 module.exports = {
   up: (queryInterface: QueryInterface, sequelize: Sequelize) => {
     return queryInterface.sequelize.transaction(
@@ -13,48 +13,50 @@ module.exports = {
             primaryKey: true,
             autoIncrement: true
           },
-          name: {
+          username: {
             type: DataTypes.STRING({ length: 50 }),
             allowNull: false,
             defaultValue: ''
           },
-          uid: {
-            type: DataTypes.BIGINT({ length: 20 }).UNSIGNED,
+          password: {
+            type: DataTypes.STRING({ length: 255 }),
             allowNull: false,
-            defaultValue: 0
+            defaultValue: ''
           },
-          os: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
+          email: {
+            type: DataTypes.STRING({ length: 100 }),
             allowNull: false,
-            defaultValue: 0
+            defaultValue: ''
           },
-          platform: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
+          identical: {
+            type: DataTypes.STRING({ length: 10 }),
             allowNull: false,
-            defaultValue: 0
+            unique: true,
+            defaultValue: ''
           },
-          is_use_diff_text: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
+          ack_code: {
+            type: DataTypes.STRING({ length: 10 }),
             allowNull: false,
-            defaultValue: 0
+            defaultValue: ''
           },
           created_at: {
             type: DataTypes.DATE,
             allowNull: false,
             defaultValue: sequelize.fn('NOW')
-          },
-          deleted_at: {
-            type: DataTypes.DATE,
-            defaultValue: null
-          },
+          }
         }, { transaction })
         await queryInterface.sequelize.query(`
           ALTER TABLE ${tableName}
           ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         `, { transaction })
-        await queryInterface.addIndex(tableName, { fields: [{ name: 'name', length: 12 }], transaction })
-      })
+        await queryInterface.addIndex(tableName, ['username'], { transaction })
+        await queryInterface.addIndex(tableName, ['email'], { transaction })
+        
+      }
+    )
   },
 
-  down: (queryInterface: QueryInterface) => queryInterface.dropTable(tableName)
+  down: (queryInterface: QueryInterface) => {
+    return queryInterface.dropTable(tableName)
+  }
 };

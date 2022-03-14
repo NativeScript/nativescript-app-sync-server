@@ -1,6 +1,6 @@
 import {
   DataTypes, Model, Optional
-} from "sequelize";
+} from '@sequelize/core';
 import _ from 'lodash'
 import { sequelize } from "../db";
 

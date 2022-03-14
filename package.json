@@ -29,14 +29,16 @@
   },
   "scripts": {
     "dev": "ts-node-dev --rs --watch src/**/* --respawn src/app.ts",
+    "recreate-db": "npm run build && tscpaths -p tsconfig.json -s ./src -o ./dist && sequelize-cli db:drop && sequelize-cli db:create && sequelize-cli db:migrate",
     "build": "tsc && tscpaths -p tsconfig.json -s ./src -o ./dist",
     "start": "node dist/server.js",
     "eslint:fix": "eslint --fix",
     "eslint": "eslint lint",
-    "test": "NODE_ENV=test ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
+    "test": "npm run recreate-db && NODE_ENV=test ts-mocha -r tsconfig-paths/register src/**/*.test.ts --timeout 10000 --exit",
     "preinstall": "npm i -g pm2 && pm2 install pm2-logrotate"
   },
   "dependencies": {
+    "@sequelize/core": "^7.0.0-alpha.10",
     "aws-sdk": "^2.1091.0",
     "bcryptjs": "^2.4.3",
     "bluebird": "^3.7.2",
@@ -62,7 +64,6 @@
     "rand-token": "^1.0.1",
     "recursive-readdir": "^2.2.2",
     "redis": "^4.0.4",
-    "sequelize": "^6.17.0",
     "tscpaths": "0.0.9",
     "typescript": "^4.6.2",
     "validator": "^13.7.0",
@@ -97,7 +98,6 @@
     "istanbul": "^0.4.5",
     "mocha": "^9.2.1",
     "nodemon": "^2.0.15",
-    "sequelize-cli": "^6.4.1",
     "should": "^13.2.3",
     "supertest": "^6.2.2",
     "ts-mocha": "^9.0.2",

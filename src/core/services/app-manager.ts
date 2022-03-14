@@ -4,7 +4,7 @@ import bluebird from 'bluebird'
 import * as security from '../../core/utils/security'
 import { AppError } from '../app-error'
 import constName from '../constants'
-import Sequelize from 'sequelize'
+import Sequelize from '@sequelize/core'
 import { AppAttributes, AppInstance } from '~/models/apps'
 import { UpdateModelAttrs } from '~/types'
 

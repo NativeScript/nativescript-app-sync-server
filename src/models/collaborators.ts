@@ -1,4 +1,4 @@
-import { Optional, Model, Sequelize, DataTypes } from "sequelize";
+import { Optional, Model, Sequelize, DataTypes } from '@sequelize/core';
 import { sequelize } from "../db";
 
 export interface ICollaboratorAttributes {

@@ -1,6 +1,6 @@
 import { QueryInterface, DataTypes, Sequelize } from '@sequelize/core';
 
-const tableName = 'apps'
+const tableName = 'packages_diff'
 module.exports = {
   up: (queryInterface: QueryInterface, sequelize: Sequelize) => {
     return queryInterface.sequelize.transaction(
@@ -13,28 +13,23 @@ module.exports = {
             primaryKey: true,
             autoIncrement: true
           },
-          name: {
-            type: DataTypes.STRING({ length: 50 }),
+          package_id: {
+            type: DataTypes.INTEGER({ length: 11 }).UNSIGNED,
+            allowNull: false,
+            defaultValue: 0
+          },
+          diff_against_package_hash: {
+            type: DataTypes.STRING({ length: 64 }),
             allowNull: false,
             defaultValue: ''
           },
-          uid: {
-            type: DataTypes.BIGINT({ length: 20 }).UNSIGNED,
+          blob_url: {
+            type: DataTypes.STRING({ length: 255 }),
             allowNull: false,
-            defaultValue: 0
+            defaultValue: ''
           },
-          os: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-            allowNull: false,
-            defaultValue: 0
-          },
-          platform: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-            allowNull: false,
-            defaultValue: 0
-          },
-          is_use_diff_text: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
+          diff_size: {
+            type: DataTypes.INTEGER({ length: 11 }).UNSIGNED,
             allowNull: false,
             defaultValue: 0
           },
@@ -52,9 +47,12 @@ module.exports = {
           ALTER TABLE ${tableName}
           ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         `, { transaction })
-        await queryInterface.addIndex(tableName, { fields: [{ name: 'name', length: 12 }], transaction })
-      })
+        await queryInterface.addIndex(tableName, { fields: [{ name: 'package_id' }, { name: 'diff_against_package_hash', length: 40 }], transaction })
+      }
+    )
   },
 
-  down: (queryInterface: QueryInterface) => queryInterface.dropTable(tableName)
+  down: (queryInterface: QueryInterface) => {
+    return queryInterface.dropTable('packages_diff')
+  }
 };

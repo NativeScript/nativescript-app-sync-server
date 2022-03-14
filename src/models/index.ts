@@ -12,5 +12,4 @@ export { default as PackagesDiff } from './packages_diff'
 export { default as PackagesMetrics } from './packages_metrics'
 export { default as UserTokens } from './user_tokens'
 export { default as Users } from './users'
-export { default as Versions } from './versions'
 export const sequelize = seq 

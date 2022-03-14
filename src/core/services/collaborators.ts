@@ -1,7 +1,7 @@
 import * as models from '../../models'
 import _ from 'lodash'
 import { AppError } from '../app-error'
-import Sequelize from 'sequelize'
+import Sequelize from '@sequelize/core'
 import { ICollaboratorInstance } from '~/models/collaborators';
 
 export const listCollaborators = async function (appId: number) {

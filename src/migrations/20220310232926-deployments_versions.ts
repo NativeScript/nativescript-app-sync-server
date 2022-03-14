@@ -1,6 +1,6 @@
 import { QueryInterface, DataTypes, Sequelize } from '@sequelize/core';
 
-const tableName = 'apps'
+const tableName = 'deployments_versions'
 module.exports = {
   up: (queryInterface: QueryInterface, sequelize: Sequelize) => {
     return queryInterface.sequelize.transaction(
@@ -13,28 +13,28 @@ module.exports = {
             primaryKey: true,
             autoIncrement: true
           },
-          name: {
-            type: DataTypes.STRING({ length: 50 }),
+          deployment_id: {
+            type: DataTypes.INTEGER({ length: 11 }),
+            allowNull: false,
+            defaultValue: 0
+          },
+          app_version: {
+            type: DataTypes.STRING({ length: 100 }),
             allowNull: false,
             defaultValue: ''
           },
-          uid: {
+          current_package_id: {
+            type: DataTypes.INTEGER({ length: 10 }).UNSIGNED,
+            allowNull: false,
+            defaultValue: 0
+          },
+          min_version: {
             type: DataTypes.BIGINT({ length: 20 }).UNSIGNED,
             allowNull: false,
             defaultValue: 0
           },
-          os: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-            allowNull: false,
-            defaultValue: 0
-          },
-          platform: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-            allowNull: false,
-            defaultValue: 0
-          },
-          is_use_diff_text: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
+          max_version: {
+            type: DataTypes.BIGINT({ length: 20 }).UNSIGNED,
             allowNull: false,
             defaultValue: 0
           },
@@ -47,14 +47,19 @@ module.exports = {
             type: DataTypes.DATE,
             defaultValue: null
           },
-        }, { transaction })
+        })
         await queryInterface.sequelize.query(`
           ALTER TABLE ${tableName}
           ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         `, { transaction })
-        await queryInterface.addIndex(tableName, { fields: [{ name: 'name', length: 12 }], transaction })
-      })
-  },
+        await queryInterface.addIndex(tableName, ['deployment_id', 'min_version'], { transaction })
+        await queryInterface.addIndex(tableName, ['deployment_id', 'max_version'], { transaction })
+        await queryInterface.addIndex(tableName, { fields: [{ name: 'app_version', length: 30 }, { name: 'deployment_id' }], transaction })
+      },
 
-  down: (queryInterface: QueryInterface) => queryInterface.dropTable(tableName)
+    )
+  },
+  down: (queryInterface: QueryInterface) => {
+    return queryInterface.dropTable(tableName)
+  }
 };

@@ -1,6 +1,6 @@
 import { Configuration as Log4JSConfig } from 'log4js'
 import { RedisClientOptions } from 'redis'
-import sequelize from 'sequelize'
+import sequelize from '@sequelize/core'
 import { ConfigurationOptions } from 'aws-sdk'
 import os from 'os'
 

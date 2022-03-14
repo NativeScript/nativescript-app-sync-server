@@ -1,59 +1,51 @@
-import { QueryInterface, DataTypes, Sequelize } from 'sequelize';
+import { QueryInterface, DataTypes, Sequelize } from '@sequelize/core';
 
+const tableName = 'collaborators'
 module.exports = {
-  up: (queryInterface: QueryInterface, sequelize: Sequelize) => {
-    queryInterface.createTable('collaborators', {
-      id: {
-        allowNull: false,
-        type: DataTypes.BIGINT({ length: 20 }),
-        unique: true,
-        primaryKey: true,
-        autoIncrement: true
-      },
-      appid: {
-        type: DataTypes.INTEGER({ length: 10 }).UNSIGNED,
-        allowNull: false,
-        defaultValue: 0
-      },
-      uid: {
-        type: DataTypes.STRING({ length: 20 }),
-        allowNull: false,
-        defaultValue: ''
-      },
-      roles: {
-        type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-        allowNull: false,
-        defaultValue: 0
-      },
-      platform: {
-        type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-        allowNull: false,
-        defaultValue: 0
-      },
-      is_use_diff_text: {
-        type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-        allowNull: false,
-        defaultValue: 0
-      },
-      updated_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: sequelize.fn('NOW')
-      },
-      created_at: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: sequelize.fn('NOW')
-      },
-      deleted_at: {
-        type: DataTypes.DATE,
-        defaultValue: null
-      },
-    })
-    queryInterface.addIndex('collaborators', ['appid', 'uid'])
-  },
+  up: (queryInterface: QueryInterface, sequelize: Sequelize) =>
+    queryInterface.sequelize.transaction(
+      async (transaction) => {
+        await queryInterface.createTable('collaborators', {
+          id: {
+            type: DataTypes.BIGINT({ length: 20 }).UNSIGNED,
+            allowNull: false,
+            unique: true,
+            primaryKey: true,
+            autoIncrement: true
+          },
+          appid: {
+            type: DataTypes.INTEGER({ length: 10 }).UNSIGNED,
+            allowNull: false,
+            defaultValue: 0
+          },
+          uid: {
+            type: DataTypes.BIGINT({ length: 20 }),
+            allowNull: false,
+            defaultValue: 0
+          },
+          roles: {
+            type: DataTypes.STRING({ length: 20 }),
+            allowNull: false,
+            defaultValue: ''
+          },
+          created_at: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: sequelize.fn('NOW')
+          },
+          deleted_at: {
+            type: DataTypes.DATE,
+            defaultValue: null
+          },
+        }, { transaction })
+        await queryInterface.sequelize.query(`
+        ALTER TABLE ${tableName}
+        ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        `, { transaction })
+        await queryInterface.addIndex(tableName, ['appid'], { transaction })
+        await queryInterface.addIndex(tableName, ['uid'], { transaction })
+      }
+    ),
 
-  down: (queryInterface: QueryInterface) => {
-    queryInterface.dropTable('collaborators')
-  }
+  down: (queryInterface: QueryInterface) => queryInterface.dropTable(tableName)
 };

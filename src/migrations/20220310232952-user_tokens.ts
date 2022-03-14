@@ -1,6 +1,6 @@
 import { QueryInterface, DataTypes, Sequelize } from '@sequelize/core';
 
-const tableName = 'apps'
+const tableName = 'user_tokens'
 module.exports = {
   up: (queryInterface: QueryInterface, sequelize: Sequelize) => {
     return queryInterface.sequelize.transaction(
@@ -13,30 +13,39 @@ module.exports = {
             primaryKey: true,
             autoIncrement: true
           },
-          name: {
-            type: DataTypes.STRING({ length: 50 }),
-            allowNull: false,
-            defaultValue: ''
-          },
           uid: {
             type: DataTypes.BIGINT({ length: 20 }).UNSIGNED,
             allowNull: false,
             defaultValue: 0
           },
-          os: {
+          name: {
+            type: DataTypes.STRING({ length: 50 }),
+            allowNull: false,
+            defaultValue: ''
+          },
+          tokens: {
+            type: DataTypes.STRING({ length: 64 }),
+            allowNull: false,
+            defaultValue: ''
+          },
+          created_by: {
+            type: DataTypes.STRING({ length: 64 }),
+            allowNull: false,
+            defaultValue: ''
+          },
+          description: {
+            type: DataTypes.STRING({ length: 500 }),
+            allowNull: false,
+            defaultValue: ''
+          },
+          is_session: {
             type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
             allowNull: false,
             defaultValue: 0
           },
-          platform: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-            allowNull: false,
-            defaultValue: 0
-          },
-          is_use_diff_text: {
-            type: DataTypes.TINYINT({ length: 3 }).UNSIGNED,
-            allowNull: false,
-            defaultValue: 0
+          expires_at: {
+            type: DataTypes.DATE,
+            defaultValue: null
           },
           created_at: {
             type: DataTypes.DATE,
@@ -48,13 +57,13 @@ module.exports = {
             defaultValue: null
           },
         }, { transaction })
-        await queryInterface.sequelize.query(`
-          ALTER TABLE ${tableName}
-          ADD COLUMN updated_at timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        `, { transaction })
-        await queryInterface.addIndex(tableName, { fields: [{ name: 'name', length: 12 }], transaction })
-      })
+        await queryInterface.addIndex(tableName, ['tokens'], { transaction })
+        await queryInterface.addIndex(tableName, ['uid'], { transaction })
+      }
+    )
   },
 
-  down: (queryInterface: QueryInterface) => queryInterface.dropTable(tableName)
+  down: (queryInterface: QueryInterface) => {
+    return queryInterface.dropTable('user_tokens')
+  }
 };

@@ -1,6 +1,6 @@
 import {
   Sequelize, DataTypes, Model, BuildOptions, Optional
-} from "sequelize";
+} from '@sequelize/core';
 import { sequelize } from "../db";
 
 interface DeploymentsHistoryAttributes {
