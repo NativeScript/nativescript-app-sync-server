@@ -3,7 +3,8 @@ FROM node:14.17 as base
 WORKDIR /usr
 COPY /package*.json ./
 RUN npm install --no-optional && npm cache clean --force
-COPY ./src ./src
+RUN npm i -g sequelize sequelize-cli
+COPY ./ ./
 
 #dev we don't COPY in this stage because for dev you'll bind-mount anyway
 FROM base as dev

@@ -18,24 +18,7 @@ export let TEST_AUTH_ACCESS_KEY = '';
 
 export const TEST_COLABORATOR_ACCOUNT = 'colab@nativescript.com';
 
-describe('api/init/database.js', function () {
-
-  describe('create database', function () {
-    it('should create database successful', function (done) {
-      const connection = mysql.createConnection({
-        host: config.db.host,
-        user: config.db.username,
-        password: config.db.password,
-        multipleStatements: true
-      });
-      connection.connect();
-      connection.query(`DROP DATABASE IF EXISTS ${config.db.database};CREATE DATABASE IF NOT EXISTS ${config.db.database}`, function (err, rows, fields) {
-        should.not.exist(err);
-        done();
-      });
-      connection.end();
-    });
-  });
+describe('run seeds', function () {
 
   describe('flushall redis', function () {
     it('should flushall redis successful', async function () {
@@ -67,8 +50,8 @@ describe('api/init/database.js', function () {
       connection.end();
     });
 
-    it('should import data codepush-all.sql successful', function (done) {
-      const sql = fs.readFileSync(path.resolve(__dirname, '../../sql/codepush-all.sql'), 'utf-8');
+    it('should run seeds', function (done) {
+      const sql = fs.readFileSync(path.resolve(__dirname, '../../sql/seeds.sql'), 'utf-8');
       connection.query(sql, function (err, results) {
         should.not.exist(err);
         done();
@@ -120,7 +103,9 @@ describe('api/index/index.test.js', function () {
         .set('Authorization', `Basic ${TEST_AUTH_BASIC_TOKEN}`)
         .send()
         .end(function (err, res) {
+          console.log('🚀 ~ file: index.test.ts ~ line 106 ~ res', res)
           should.not.exist(err);
+          console.log('🚀 ~ file: index.test.ts ~ line 107 ~ err', err)
           res.status.should.equal(200);
 
           const rs = JSON.parse(res.text);

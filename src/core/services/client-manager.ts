@@ -7,7 +7,7 @@ import { getRedisClient } from '../utils/redis'
 import { AppError } from '../app-error'
 import config from '../config'
 import log4js from 'log4js'
-import Sequelize from 'sequelize'
+import Sequelize from '@sequelize/core'
 
 const log = log4js.getLogger("cps:ClientManager")
 

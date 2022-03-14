@@ -1,6 +1,6 @@
 import {
   DataTypes, Model, Optional
-} from "sequelize";
+} from '@sequelize/core';
 import { sequelize } from "../db";
 
 export interface UsersAttributes {
