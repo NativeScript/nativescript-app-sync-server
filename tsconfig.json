@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+        "baseUrl": "./",
+        "target": "es6",
+        "moduleResolution": "node",
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "allowUnreachableCode": false,
+        "alwaysStrict": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "strict": true,
+        "strictNullChecks": true,
+        "sourceMap": true,
+        "outDir": "dist",
+        "allowJs": true,
+        "paths": {
+            "~/*": ["src/*"]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
