@@ -5,8 +5,10 @@ var _ = require('lodash');
 var validator = require('validator');
 var security = require('../utils/security');
 var moment = require('moment');
-var nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail')
+
 var config = require('../config');
+sgMail.setApiKey(config.SENDGRID_API_KEY)
 
 var proto = module.exports = function (){
   function EmailManager() {
@@ -25,7 +27,6 @@ proto.sendMail = function (options) {
     if (!smtpConfig) {
       resolve({});
     }
-    var transporter = nodemailer.createTransport(smtpConfig);
     var sendEmailAddress = _.get(smtpConfig, 'auth.user');
     var defaultMailOptions = {
       from: `"NativeScript AppSync Server" <${sendEmailAddress}>`, // sender address
@@ -33,13 +34,25 @@ proto.sendMail = function (options) {
       subject: 'NativeScript AppSync Server', // Subject line
       html: '' // html body
     };
+
     var mailOptions = _.assign(defaultMailOptions, options);
-    transporter.sendMail(mailOptions, function(error, info){
-      if(error){
+    sgMail
+      .send(mailOptions)
+      .then((response) => {
+        console.log(response[0].statusCode)
+        console.log(response[0].headers)
+        return resolve(response);
+      })
+      .catch((error) => {
+        console.error(error)
         return reject(error);
-      }
-      resolve(info);
-    });
+      })
+    // transporter.sendMail(mailOptions, function(error, info){
+    //   if(error){
+    //     return reject(error);
+    //   }
+    //   resolve(info);
+    // });
   });
 };
 

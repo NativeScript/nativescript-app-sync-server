@@ -5,8 +5,18 @@ var security = require('../core/utils/security');
 var models = require('../models');
 var moment = require('moment');
 var AppError = require('./app-error')
+var AccountManager = require('../core/services/account-manager');
+var accountManager = new AccountManager();
+
+const { auth, requiredScopes } = require('express-oauth2-jwt-bearer');
 
 var middleware = module.exports
+
+const checkAuth0Jwt = auth({
+  audience: 'security.api.universalplant.com',
+  issuerBaseURL: "https://universalplant.auth0.com",
+});
+
 
 var checkAuthToken = function (authToken) {
   var objToken = security.parseToken(authToken);
@@ -71,12 +81,12 @@ var checkAccessToken = function (accessToken) {
 
 middleware.checkToken = function(req, res, next) {
   var authArr = _.split(req.get('Authorization'), ' ');
-  var authType = 1;
+  var authType = 1; //hardcoded?
   var authToken = null;
   if (_.eq(authArr[0], 'Bearer')) {
     authToken = authArr[1]; //Bearer
     if (authToken && authToken.length > 64) {
-      authType = 2;
+      authType = 3;
     } else {
       authType = 1;
     }
@@ -114,7 +124,64 @@ middleware.checkToken = function(req, res, next) {
         next(e);
       }
     });
+  } else if (authToken && authType == 3) {
+    checkAuth0Jwt(req, res, function() {
+      // console.log(req.auth.token)
+      getUserData(req.auth.token, data => {
+        // req.users = data;
+        // req.users.id = data['http://security.universalplant.com/user-id'];
+        models.Users.findOne({
+          where: {email: data.email}
+        })
+        .then((users) => {
+          if (_.isEmpty(users)) {
+            var identical = security.randToken(9);
+            accountManager.registerExternal(data['http://security.universalplant.com/user-id'], data.email, identical)
+            .then(() => {
+              models.Users.findOne({
+                where: {email: data.email}
+              })
+              .then((users) => {
+                if (_.isEmpty(users)) {
+                  res.send(new AppError.Unauthorized(`Failed to register user`));
+                }
+                req.users = users;
+                next();
+              })
+            })
+          }
+          req.users = users
+          next()
+          
+        })
+        
+      })
+      
+    });
   } else {
     res.send(new AppError.Unauthorized(`Auth type not supported.`));
   }
 };
+
+
+const axios = require('axios');
+
+//TODO: extract auth options in config
+function getUserData(token, completion) {
+  const config = {
+    headers:{
+      "Authorization": `Bearer ${token}`
+    }
+  };
+  axios.get('https://universalplant.auth0.com/userinfo', config)
+  .then(res => {
+    const data = res.data;
+    completion(data);
+  })
+  .catch(err => {
+    console.log('Error: ', err.message);
+    completion(err)
+  });
+}
+
+

@@ -121,16 +121,17 @@ proto.login = function (account, password) {
   })
   .then((users) => {
     if (tryLoginTimes > 0) {
-      var loginKey = `${LOGIN_LIMIT_PRE}${users.id}`;
-      var client = factory.getRedisClient("default");
-      return client.getAsync(loginKey)
-      .then((loginErrorTimes) => {
-        if (loginErrorTimes > tryLoginTimes) {
-          throw new AppError.AppError(`Too many login attempts. Your account has been locked.`);
-        }
-        return users;
-      })
-      .finally(() => client.quit());
+      // var loginKey = `${LOGIN_LIMIT_PRE}${users.id}`;
+      // var client = factory.getRedisClient("default");
+      // return client.getAsync(loginKey)
+      // .then((loginErrorTimes) => {
+      //   if (loginErrorTimes > tryLoginTimes) {
+      //     throw new AppError.AppError(`Too many login attempts. Your account has been locked.`);
+      //   }
+      //   return users;
+      // })
+      // .finally(() => client.quit());
+      return users;
     } else {
       return users;
     }
@@ -177,18 +178,22 @@ proto.sendRegisterCode = function (email) {
   .then(() => {
     //将token临时存储到redis
     var token = security.randToken(40);
-    var client = factory.getRedisClient("default");
-    return client.setexAsync(`${REGISTER_CODE}${security.md5(email)}`, EXPIRED, token)
-    .then(() => {
-      return token;
-    })
-    .finally(() => client.quit());
+    return token
+    // var client = factory.getRedisClient("default");
+    // return client.setexAsync(`${REGISTER_CODE}${security.md5(email)}`, EXPIRED, token)
+    // .then(() => {
+    //   return token;
+    // })
+    // .finally(() => client.quit());
   })
   .then((token) => {
     //将token发送到用户邮箱
     var emailManager = new EmailManager();
     console.log("Calling email manager with token: " + token);
     return emailManager.sendRegisterCode(email, token);
+  })
+  .catch(err => {
+    console.log(err)
   })
 };
 
@@ -202,24 +207,25 @@ proto.checkRegisterCode = function (email, token) {
   .then(() => {
     var registerKey = `${REGISTER_CODE}${security.md5(email)}`;
     var client = factory.getRedisClient("default");
-    return client.getAsync(registerKey)
-    .then((storageToken) => {
-      if (_.isEmpty(storageToken)) {
-        throw new AppError.AppError(`The verification code has expired, grab a new one!`);
-      }
-      if (!_.eq(token, storageToken)) {
-        client.ttlAsync(registerKey)
-        .then((ttl) => {
-          if (ttl > 0) {
-            return client.expireAsync(registerKey, ttl - EXPIRED_SPEED);
-          }
-          return ttl;
-        })
-        .finally(() => client.quit());
-        throw new AppError.AppError(`Incorrect verification code, please enter it again.`);
-      }
-      return storageToken;
-    })
+    return true;
+    //return client.getAsync(registerKey)
+    // .then((storageToken) => {
+    //   if (_.isEmpty(storageToken)) {
+    //     throw new AppError.AppError(`The verification code has expired, grab a new one!`);
+    //   }
+    //   if (!_.eq(token, storageToken)) {
+    //     client.ttlAsync(registerKey)
+    //     .then((ttl) => {
+    //       if (ttl > 0) {
+    //         return client.expireAsync(registerKey, ttl - EXPIRED_SPEED);
+    //       }
+    //       return ttl;
+    //     })
+    //     .finally(() => client.quit());
+    //     throw new AppError.AppError(`Incorrect verification code, please enter it again.`);
+    //   }
+    //   return storageToken;
+    // })
   })
 }
 
@@ -236,6 +242,22 @@ proto.register = function (email, password) {
       email: email,
       password: security.passwordHashSync(password),
       identical: identical
+    });
+  })
+}
+
+proto.registerExternal = function (id, email, identical) {
+  return models.Users.findOne({where: {email: email}})
+  .then((u) => {
+    if (u) {
+      throw new AppError.AppError(`"${email}" is already registered`);
+    }
+  })
+  .then(() => {
+    return models.Users.create({
+      email: email,
+      identical: identical,
+      id: id
     });
   })
 }

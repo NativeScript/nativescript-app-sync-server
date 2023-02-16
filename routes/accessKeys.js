@@ -23,7 +23,8 @@ router.get('/', middleware.checkToken, (req, res, next) => {
 
 router.post('/', middleware.checkToken, (req, res, next) => {
   var uid = req.users.id;
-  var identical = req.users.identical;
+  //TODO: add identical property to oauth user
+  var identical = req.users.identical || uid.split("-")[0];
   var createdBy = _.trim(req.body.createdBy);
   var friendlyName = _.trim(req.body.friendlyName);
   var ttl = parseInt(req.body.ttl);
