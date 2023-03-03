@@ -175,8 +175,7 @@ proto.updateCheck = function(deploymentKey, appVersion, label, packageHash, clie
     return models.Packages.findById(packageId)
     .then((packages) => {
       if (packages
-        && _.eq(packages.deployment_id, deploymentsVersions.deployment_id)
-        && !_.eq(packages.package_hash, packageHash)) {
+        && _.eq(packages.deployment_id, deploymentsVersions.deployment_id)) {
         rs.packageId = packageId;
         rs.downloadUrl = rs.downloadURL = common.getBlobDownloadUrl(_.get(packages, 'blob_url'));
         rs.description = _.get(packages, 'description', '');
